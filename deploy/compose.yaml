@@ -1,0 +1,48 @@
+services:
+  duet:
+    build: ..
+    restart: unless-stopped
+    environment:
+      DUET_SECURE_COOKIE: '1'
+      DUET_DATA: /data
+    volumes:
+      - duet-data:/data
+    expose:
+      - '8000'
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    mem_limit: 256m
+    pids_limit: 64
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DUET_DOMAIN: ${DUET_DOMAIN:?Set DUET_DOMAIN to your domain}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      duet:
+        condition: service_healthy
+  backup:
+    build: ..
+    restart: unless-stopped
+    command: ['python', 'backup.py', '--loop', '--source', '/data/duet.sqlite3', '--directory', '/backups']
+    volumes:
+      - duet-data:/data
+      - duet-backups:/backups
+    depends_on:
+      duet:
+        condition: service_healthy
+volumes:
+  duet-data:
+  caddy-data:
+  caddy-config:
+  duet-backups:
