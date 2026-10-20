@@ -1,0 +1,5 @@
+/*
+  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; script-src 'self'; frame-ancestors 'none'; base-uri 'none'
+  Referrer-Policy: same-origin
+  X-Content-Type-Options: nosniff
+  Strict-Transport-Security: max-age=31536000

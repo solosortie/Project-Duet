@@ -1,0 +1,8 @@
+Duet Hand — original lettering created for Project Duet.
+
+Permission is granted, free of charge, to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell this font and its source generator.
+THE FONT IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
+
+This license applies to duet-hand.ttf and design/build_font.py only.
+Caveat has its separate SIL Open Font License in public/assets/FONT-LICENSE.txt.

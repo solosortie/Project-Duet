@@ -1,0 +1,12 @@
+data
+__pycache__
+.git
+.env
+backups
+deploy/backups
+*.zip
+node_modules
+.wrangler
+worker
+wrangler.jsonc
+package.json

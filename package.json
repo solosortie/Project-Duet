@@ -1,0 +1,16 @@
+{
+  "name": "project-duet",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:local": "wrangler d1 migrations apply duet --local",
+    "db:remote": "wrangler d1 migrations apply duet --remote",
+    "backup": "wrangler d1 export duet --remote --output backups/duet-latest.sql",
+    "test": "node worker/test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
