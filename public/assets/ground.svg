@@ -1,15 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 160" preserveAspectRatio="none">
   <!-- Brown soil fills everything from mid-grass down -->
-  <rect x="0" y="36" width="1440" height="124" fill="#9a7350"/>
+  <rect x="0" y="76" width="1440" height="84" fill="#9a7350"/>
   <!-- Green grass: solid from y=0, bottom edge is a gentle wave that sits ON the brown -->
-  <path d="M0 0H1440V36
-    Q1260 48 1080 34
-    Q900 50 720 32
-    Q540 48 360 36
-    Q180 46 0 38
+  <path d="M0 0H1440V76
+    Q1260 88 1080 74
+    Q900 90 720 72
+    Q540 88 360 76
+    Q180 86 0 78
     Z" fill="#7a8958"/>
   <!-- Darker edge along the grass bottom for definition (same wave) -->
-  <path d="M0 38Q180 46 360 36Q540 48 720 32Q900 50 1080 34Q1260 48 1440 36"
+  <path d="M0 78Q180 86 360 76Q540 88 720 72Q900 90 1080 74Q1260 88 1440 76"
     fill="none" stroke="#5a6842" stroke-width="1.6"/>
   <!-- Sparse grass tufts -->
   <g fill="none" stroke="#5a6842" stroke-width="1.4" stroke-linecap="round">

@@ -40,3 +40,6 @@
 - Drafts stay on their device; published cards are append-only. No delete/edit-published interface.
 - Browser audio policies require user interaction. Actual sound output depends on device/browser settings.
 - Keep one application instance and its existing volume; copy backups off the server. An indefinitely loaded wall can accumulate cards in browser memory.
+
+## Uploaded UI revision — meadow enhancement
+Based on the supplied Downloads/project-duet.zip, preserving its UI/backend changes. Added layered green hills and a small wildflower SVG; extended meadow turf; retained the backdrop on choosing. Anchored the cat within PROJECT and deer to the measured ground level. Added reduced-motion-aware portrait selection animation, preventing simultaneous identity submissions. Walls now use a subtle sage wash while notes retain their paper colors. Desktop and 390px phone entry/choosing/wall views checked in Chromium; no browser errors observed. Other device sizes adapt through fluid dimensions and content-aware ground positioning; physical-device testing remains advisable.

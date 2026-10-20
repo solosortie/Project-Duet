@@ -109,3 +109,21 @@ body[data-view=choose] .entry-backdrop .entry-deer{left:6%;bottom:20%}
   .entry-backdrop .ground-layer{height:28%;background-size:100% 120px}
   .entry-backdrop .sky{inset:0 0 35% 0}
 }
+
+/* Meadow refinement: animals follow their actual supporting surfaces. */
+.project-word{position:relative;display:inline-block}.wordmark .project-word .brand-cat{display:block;position:absolute;width:56%;height:auto;left:45%;right:auto;top:.11em;bottom:auto;transform:translateY(-64%);pointer-events:none;max-width:none}
+body[data-view=walls] .wordmark .brand-cat{display:none}
+body:is([data-view=welcome],[data-view=choose]){position:relative;background-color:#e4ebd7}
+body:is([data-view=welcome],[data-view=choose]) main{position:static;padding-bottom:0}
+.entry-backdrop{position:absolute;min-height:100svh;overflow:hidden}
+.entry-backdrop .sky{inset:0;background:linear-gradient(#c8deea,#e6ecda 72%)}
+.entry-backdrop .ground-layer{top:var(--meadow-y,72vh);bottom:0;height:auto;background-size:100% 160px}
+.entry-backdrop .meadow-hills{position:absolute;left:0;bottom:100%;width:100%;height:95px;margin-bottom:-1px}
+.entry-backdrop .meadow-sprig{position:absolute;right:8%;top:-40px;width:57px;height:72px;opacity:.9}
+.entry-backdrop .entry-deer,body[data-view=choose] .entry-backdrop .entry-deer{width:clamp(115px,17vw,190px);left:clamp(8px,10vw,180px);top:calc(var(--meadow-y,72vh) + 15px);bottom:auto;transform:translateY(-86.2%)}
+.person-choice:hover .portrait,.person-choice:focus-visible .portrait{transform:translateY(-4px) rotate(-3deg)}.person-choice .portrait{transition:transform .22s ease}.person-choice.picked .portrait{animation:portal-nod .32s ease both}.person-choice.picked{border-color:var(--moss);background:#edf0dc}
+@keyframes portal-nod{0%{transform:translateY(0)}45%{transform:translateY(-7px) rotate(4deg)}100%{transform:translateY(0) rotate(0)}}
+body[data-view=walls]{background-color:#e2e6d8;background-image:radial-gradient(ellipse at 10% 0%,#f1eddf 0%,transparent 65%),linear-gradient(115deg,#aab69b12,transparent 50%,#879c7e16);background-attachment:fixed}
+@media(max-width:620px){.entry-backdrop .meadow-hills{height:62px}.entry-backdrop .meadow-sprig{right:9%;width:42px;height:55px;top:-30px}.entry-backdrop .entry-deer{left:2%}.entry-scene{margin-bottom:0}body:is([data-view=welcome],[data-view=choose]) .brand-scene{height:215px}}
+@media(max-height:600px){body:is([data-view=welcome],[data-view=choose]) .brand-scene{height:115px}.entry-backdrop .entry-deer{width:100px}.entry-backdrop .meadow-hills{height:40px}.entry-backdrop .meadow-sprig{width:34px;height:45px;top:-20px}}
+@media(prefers-reduced-motion:reduce){.person-choice .portrait{transition:none}.person-choice.picked .portrait{animation:none}.person-choice:hover .portrait{transform:none}}
