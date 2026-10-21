@@ -111,3 +111,5 @@ Controls: all three screens, either person, Kolkata date/time, frozen or acceler
 Check preview behavior with `node --test worker/dev-preview-test.mjs`.
 
 Flame contours animate independently of their fixed position. Gain ignites, break fades into embers, and renewal shows a waiting flame. Color warms from yellow toward red over the Kolkata day; the surrounding glow stays subtle. Sun and moon artwork is currently removed.
+=======
+Testing phase ongoing
