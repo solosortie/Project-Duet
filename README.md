@@ -16,7 +16,7 @@ If an earlier version is running, stop it with Ctrl+C and restart. The backend m
 
 ## Interface and editors
 
-The centered title uses a heavier original Duet Hand font. ChatChan's deer is on the left, Aryan's cat on the right. Their portal names use a separate handwritten face. A person icon and “Logged in as …” identify the selected portal; wall headings explicitly name their owner.
+The centered title uses a heavier original Duet Hand font. ChatChan's deer is on the left, Aryan's cat on the right. Site labels use the original Duet Hand lowercase letters; notes retain their separate handwriting font. A person icon and “Logged in as …” identify the selected portal; wall headings explicitly name their owner.
 
 **Add a note** opens two choices:
 
@@ -27,11 +27,17 @@ Canvas and note drafts are saved separately for each person on this device. Clos
 
 ## Sound and animation
 
-Settings contains music playback and volume. Play and mute have distinct SVG icons. Buttons produce a very quiet, short synthesized squish; no sound-effect download is needed. The supplied music loops after browser-permitted interaction.
+Settings contains music playback and volume. Play and mute have distinct SVG icons. Buttons produce a very quiet, short synthesized squish; no sound-effect download is needed. The three supplied tracks cycle in order: Coffee, tranquil, Sky. Settings → Sound includes a small next-track control. Playback starts after browser-permitted interaction.
 
 The page has no decorative coffee mugs; a dedicated transparent, tightly framed mug SVG is used only as the favicon. The cat's whiskers connect to its cheeks. The deer has brown patches and a filled brown nose. Gentle tail and ear movements loop continuously with eased timing. Reduced-motion preferences are respected automatically, without a motion checkbox.
 
 Responsive rules cover narrow phones, tablets, desktops, and short landscape screens. Dialogs scroll when necessary; note text remains readable and editing controls wrap rather than overflowing.
+
+## Shared time and streaks
+
+All three screens share a server-synchronized Kolkata clock, gently changing sky and meadow colors. The circular clock and date appear only on the walls. The clock falls back to device time while offline and resynchronizes on return.
+
+Each person has an independent streak based on successful posts during Kolkata calendar days (midnight to midnight). The first note or canvas earns that day; extra posts do not add days. Missing an entire day breaks the run. The previous day's streak remains visible until today's deadline. A small flame celebrates the first successful post that day. Existing posts count; previews and local drafts do not.
 
 ## Configuration and hosting
 
@@ -57,7 +63,7 @@ The server uses the socket source address for rate limiting; behind a reverse pr
 
 ## Data and backups
 
-The server upgrades the existing SQLite schema automatically without removing notes. Notes and vector strokes live in `data/duet.sqlite3` (or `DUET_DATA`); drafts live in browser local storage. Notes synchronize incrementally every five seconds while the page is visible. Unchanged notes are not redrawn. Reconnecting catches up in batches without losing intervening posts.
+The server upgrades the existing SQLite schema automatically without removing notes. Notes and vector strokes live in `data/duet.sqlite3` (or `DUET_DATA`); drafts live in browser IndexedDB, with migration from older local-storage drafts. Detailed canvases are stored losslessly in validated vector chunks, with a single published manifest after every chunk arrives. Retry-safe uploads preserve pressure and coordinates; failed saves keep the local draft. The limits remain 500 strokes and 4,000 points per stroke segment. Unpublished uploads older than seven days are cleaned up when a new upload starts. Notes synchronize incrementally every five seconds while the page is visible. Unchanged notes are not redrawn. Reconnecting catches up in batches without losing intervening posts.
 
 Create a consistent backup while the server is running:
 
@@ -77,18 +83,31 @@ The restore preserves the replaced database as a `.before-restore-*` file. Keep 
 
 Editable SVGs and still companions are in `public/assets/`. The cat and deer use a 400×210 viewBox; the favicon is 32×32, tape 140×40. The animated variants contain looping tail/ear motion. Replace both animated and `-still.svg` files when substituting artwork. Three tape designs and six deterministic arrangements keep each note’s tape stable across refreshes. The deer nestles beside the entry card. Dedicated portrait SVGs identify the two choices.
 
-`duet-hand.ttf` is the original display font generated from the centerlines in `design/build_font.py`. It includes uppercase letters, digits and basic punctuation; lowercase maps to the uppercase glyphs. To rebuild only, install fontTools and run that script. No fontTools installation is needed to run the site. Its license is in `design/FONT-LICENSE.txt`. Caveat's separate SIL Open Font License is in `public/assets/FONT-LICENSE.txt`.
+`duet-hand.ttf` is the original display font generated from the centerlines in `design/build_font.py`. It includes heavier uppercase letters, 26 distinct lowercase letters, digits and basic punctuation. To rebuild only, install fontTools and run that script. No fontTools installation is needed to run the site. Its license is in `design/FONT-LICENSE.txt`. Caveat's separate SIL Open Font License is in `public/assets/FONT-LICENSE.txt`.
 
 ## Checks
 
 ```sh
 python3 test_server.py
+node --test worker/drawing-test.mjs
 ```
 
-The test suite uses a temporary database. It covers authentication, origin rejection, logout, recipient routing, shared storage, confirmed saves, retry deduplication, changed-draft conflicts, brush/pressure validation, legacy notes, persisted database records, cursors, and private-file protection. Ten integration tests pass on both the standard local server and Gunicorn, including incremental catch-up beyond forty notes, identity conflicts, expired sessions, and a real backup/restore round trip. The final UI was checked at phone, tablet, desktop, and short landscape viewport sizes in Chromium. Physical iOS/Android devices still need a final smoke check; browser emulation is not a substitute for those devices.
+The test suite uses a temporary database. It covers authentication, origin rejection, logout, recipient routing, shared storage, confirmed saves, retry deduplication, changed-draft conflicts, brush/pressure validation, legacy notes, persisted database records, cursors, and private-file protection. Twelve integration tests pass on both the standard local server and Gunicorn, including incremental catch-up beyond forty notes, identity conflicts, expired sessions, and a real backup/restore round trip. The final UI was checked at phone, tablet, desktop, and short landscape viewport sizes in Chromium. Physical iOS/Android devices still need a final smoke check; browser emulation is not a substitute for those devices.
 
 ## Practical limits
 
 This is a small, shared space: either holder of the phrase can select either name. There are no personal accounts or published-note deletion controls. The chosen phrase `229` is easy to guess, so do not treat it as strong protection for sensitive material. Published drawings retain editable stroke data in storage, but this release posts finished cards rather than reopening published cards for editing. Older notes load progressively; an extremely long session can eventually accumulate many cards in memory. Music waits for a browser-permitted gesture; click sounds use Web Audio. No external fonts, analytics, or frontend framework are loaded.
 
 Full release history: [DEVELOPMENT-LOG.md](DEVELOPMENT-LOG.md).
+
+Duet Text is the lighter mixed-case companion font (`python design/build_font.py --text` to rebuild with fontTools installed). Display titles and compact system labels retain Duet Hand. Streak renewal changes the dial tint; a confirmed daily post plays a brief flame celebration returning to its badge. A broken run fades to an unlit flame once per device for that break. Reduced-motion settings replace the large motion with a brief still indicator.
+
+## Visual development controller
+
+Append `?dev=1` to the site URL (for example `http://localhost:8765/?dev=1`). Open **Dev preview** at the bottom left. This opt-in preview intercepts all API requests locally: it does not bypass server authentication or write notes/streaks to the database. Preview drafts use memory; browser preferences use a separate preview prefix. Reload resets preview notes, date and streak overrides. **Exit preview** returns to the real site.
+
+Controls: all three screens, either person, Kolkata date/time, frozen or accelerated time, day jumps, individual streak counts and completed/due/broken states, gain/break replay, renewal tint, reduced motion, tracks and existing sound controls, both editors, request latency/failure, sample notes and empty walls. Advancing through midnight changes completed → due → broken; rewinding does not reconstruct history (set the desired streak state explicitly). Paper, ink, brush and text-size controls remain in their actual editors. Resize the browser for responsive testing. Preview is a visual/API simulation, not a replacement for backend integration tests.
+
+Check preview behavior with `node --test worker/dev-preview-test.mjs`.
+
+Flame contours animate independently of their fixed position. Gain ignites, break fades into embers, and renewal shows a waiting flame. Color warms from yellow toward red over the Kolkata day; the surrounding glow stays subtle. Sun and moon artwork is currently removed.

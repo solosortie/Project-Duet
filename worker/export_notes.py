@@ -22,6 +22,14 @@ def main(src, out):
             f.write(f"INSERT INTO notes(id,nonce,author,recipient,text,drawing,paper,created,format,text_size) VALUES({int(r['id'])},{q(r['nonce'])},{q(r['author'])},{q(r['recipient'])},{q(r['text'])},{q(d[:CHUNK])},{q(r['paper'])},{r['created']!r},{int(fmt)},{int(size)});\n")
             for i in range(CHUNK, len(d), CHUNK):
                 f.write(f"UPDATE notes SET drawing=drawing||{q(d[i:i+CHUNK])} WHERE id={int(r['id'])};\n")
+        tables={x[0] for x in c.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        if 'uploads' in tables:
+            for u in c.execute("SELECT u.* FROM uploads u JOIN notes n ON n.nonce=u.nonce AND n.format=4 AND json_extract(n.drawing,'$.upload')=u.id"):
+                f.write("INSERT INTO uploads(id,author,nonce,paper,text_size,total,created) VALUES("+','.join(q(u[k]) for k in ('id','author','nonce','paper','text_size','total','created'))+");\n")
+                for part in c.execute('SELECT * FROM drawing_chunks WHERE upload=? ORDER BY part',(u['id'],)):
+                    text=part['data'];f.write("INSERT INTO drawing_chunks(upload,part,data,strokes) VALUES("+','.join([q(u['id']),str(part['part']),q(text[:CHUNK]),str(part['strokes'])])+");\n")
+                    for i in range(CHUNK,len(text),CHUNK):f.write("UPDATE drawing_chunks SET data=data||"+q(text[i:i+CHUNK])+" WHERE upload="+q(u['id'])+" AND part="+str(part['part'])+";\n")
+    c.close()
     print(f'{len(rows)} notes written to {out}')
 if __name__ == '__main__':
     if len(sys.argv) != 3: sys.exit(__doc__)

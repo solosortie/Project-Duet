@@ -1,30 +1,34 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "project-duet",
-  "main": "worker/index.js",
-  "compatibility_date": "2025-09-01",
-  "assets": {
-    "directory": "./public",
-    "binding": "ASSETS",
-    // Static files are served by Cloudflare directly (free, not counted as Worker requests).
-    // Only the API and health check run the Worker.
-    "run_worker_first": ["/api/*", "/healthz"]
-  },
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "duet",
-      // Replace with the id printed by: npx wrangler d1 create duet
-      "database_id": "REPLACE_WITH_DATABASE_ID",
-      "migrations_dir": "worker/migrations"
-    }
-  ],
-  "vars": {
-    // Largest request body in bytes. 250 KB keeps parsing well under the free plan's 10 ms CPU limit
-    // (about 12,000 drawn points). Raise it (max 600000) only if you move to Workers Paid.
-    "DUET_MAX_BODY": "250000",
-    // SHA-256 of the default passphrase. Override by setting a secret: npx wrangler secret put DUET_PASSPHRASE
-    "DUET_PASSPHRASE_SHA256": "08490295488a1189099751ebeddb5992313dd2a831e07a92e66d196ddc261777"
-  },
-  "observability": { "enabled": true }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "project-duet",
+	"main": "worker/index.js",
+	"compatibility_date": "2025-09-01",
+	"assets": {
+		"directory": "./public",
+		"binding": "ASSETS",
+		// Static files are served by Cloudflare directly (free, not counted as Worker requests).
+		// Only the API and health check run the Worker.
+		"run_worker_first": [
+			"/api/*",
+			"/healthz"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "duet",
+			// Replace with the id printed by: npx wrangler d1 create duet
+			"database_id": "272e0e97-f464-4143-99f4-0d9a4ac3d540",
+			"migrations_dir": "worker/migrations"
+		}
+		],
+	"vars": {
+		// Per-request byte cap. Detailed canvases upload in small validated chunks.
+		"DUET_MAX_BODY": "250000",
+		// SHA-256 of the default passphrase. Override by setting a secret: npx wrangler secret put DUET_PASSPHRASE
+		"DUET_PASSPHRASE_SHA256": "08490295488a1189099751ebeddb5992313dd2a831e07a92e66d196ddc261777"
+	},
+	"observability": {
+		"enabled": true
+	}
 }

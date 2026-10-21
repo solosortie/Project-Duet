@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process';
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const PASS = process.env.DUET_TEST_PASSPHRASE || '229';
 const RUN = Date.now().toString(36);
-const d1 = (sql) => execFileSync('npx', ['wrangler', 'd1', 'execute', 'duet', '--local', '--command', sql], { stdio: 'pipe' });
+const d1 = (sql) => execFileSync('npx', ['wrangler', 'd1', 'execute', 'duet', '--local', ...(process.env.DUET_TEST_PERSIST ? ['--persist-to',process.env.DUET_TEST_PERSIST] : []), '--command', sql], { stdio: 'pipe' });
 
 class Client {
   constructor() { this.jar = {}; }
@@ -190,4 +190,25 @@ test('wrong-passphrase rate limit (per IP) blocks even the right phrase', async 
   assert.equal((await c.req('/api/unlock', { passphrase: PASS }, h)).status, 429);
   assert.equal((await c.req('/api/unlock', { passphrase: PASS }, { 'CF-Connecting-IP': '203.0.113.78' })).status, 200);
   d1('DELETE FROM attempts');
+});
+
+test('chunked canvas saves beyond the request cap without exposing incomplete drafts',async()=>{
+ const a=await login('aryan'),b=await login('chat'),upload=RUN.padEnd(64,'a').replace(/[^a-f0-9]/g,'b');const segment=[{tool:'ink',color:'#594739',width:24,stride:3,points:Array.from({length:4000},(_,i)=>[i%1000,i%720,.45]).flat()}];
+ const meta={upload,author:'aryan',nonce:`chunks-${RUN}`,paper:'sage',text_size:40,total:8};assert.equal((await a.req('/api/uploads',meta)).status,200);
+ assert.equal((await a.req('/api/uploads/commit',{upload,author:'aryan'})).status,400);
+ for(let part=0;part<8;part++){const data={upload,author:'aryan',part,drawing:segment};assert.equal((await a.req('/api/uploads/chunk',data)).status,200);assert.equal((await a.req('/api/uploads/chunk',data)).status,200)}
+ assert.equal((await b.req(`/api/drawing/${upload}/0`)).status,404);
+ assert.equal((await b.req('/api/uploads/commit',{upload,author:'chat'})).status,404);
+ const commit=await a.req('/api/uploads/commit',{upload,author:'aryan'});assert.equal(commit.status,201);assert.equal(commit.json.note.format,4);assert.equal((await a.req('/api/uploads/commit',{upload,author:'aryan'})).json.note.id,commit.json.note.id);
+ assert.deepEqual((await b.req(`/api/drawing/${upload}/0`)).json.drawing,segment);
+ const state=(await a.req('/api/state')).json;assert.equal(state.timezone,'Asia/Kolkata');assert.equal(state.streaks.aryan.today,true);assert.ok(state.streaks.aryan.count>=1);
+});
+
+test('streaks: a run longer than the first query window is counted in full', async () => {
+  d1("DELETE FROM notes WHERE nonce LIKE 'streak-%'");
+  d1("WITH RECURSIVE k(i) AS (SELECT 0 UNION ALL SELECT i+1 FROM k WHERE i<59) INSERT INTO notes(nonce,author,recipient,text,drawing,paper,created,format,text_size) SELECT 'streak-'||i,'chat','aryan','x','[]','cream',strftime('%s','now')-i*86400,3,40 FROM k");
+  const a = await login('aryan');
+  const st = (await a.req('/api/state')).json.streaks;
+  d1("DELETE FROM notes WHERE nonce LIKE 'streak-%'");
+  assert.equal(st.chat.count, 60); assert.equal(st.chat.today, true);
 });

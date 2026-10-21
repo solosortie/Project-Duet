@@ -2,7 +2,8 @@ FROM python:3.13-slim
 WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt && useradd --system --uid 10001 duet && mkdir /data /backups && chown duet /data /backups
-COPY server.py config.json backup.py ./
+COPY server.py drawing_api.py config.json backup.py ./
+COPY worker/migrations ./worker/migrations
 COPY public ./public
 ENV DUET_DATA=/data PYTHONUNBUFFERED=1
 USER duet

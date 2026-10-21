@@ -118,6 +118,44 @@ class DuetTests(unittest.TestCase):
         with sqlite3.connect(Path(self.tmp.name)/'duet.sqlite3') as c: c.execute('UPDATE sessions SET expires=0')
         c.close()
         self.assertEqual(self.request(client,'/api/notes')[0],401)
+    def test_chunked_drawing_recovery_and_publication(self):
+        a=self.login('aryan');b=self.login('chat');upload='a'*64
+        parts=[[{'tool':'ink','color':'#594739','width':17,'stride':3,'points':[v for i in range(4000) for v in (i%1000,(i*3)%720,.5)]}]*2 for _ in range(9)]
+        self.assertGreater(len(json.dumps(parts)),600000)
+        meta={'upload':upload,'author':'aryan','nonce':'large-chunked-test','paper':'sage','text_size':40,'total':len(parts)}
+        self.assertEqual(self.request(a,'/api/uploads',meta)[0],200)
+        self.assertEqual(self.request(a,'/api/uploads/commit',{'upload':upload,'author':'aryan'})[0],400)
+        for i,part in enumerate(parts):
+            payload={'upload':upload,'author':'aryan','part':i,'drawing':part}
+            self.assertEqual(self.request(a,'/api/uploads/chunk',payload)[0],200)
+            self.assertEqual(self.request(a,'/api/uploads/chunk',payload)[0],200)
+        self.assertEqual(self.request(b,'/api/drawing/'+upload+'/0')[0],404)
+        changed={'upload':upload,'author':'aryan','part':0,'drawing':[dict(parts[0][0],width=18)]}
+        self.assertEqual(self.request(a,'/api/uploads/chunk',changed)[0],409)
+        self.assertEqual(self.request(b,'/api/uploads/commit',{'upload':upload,'author':'chat'})[0],404)
+        status,result=self.request(a,'/api/uploads/commit',{'upload':upload,'author':'aryan'})
+        self.assertEqual(status,201);self.assertEqual(result['note']['format'],4)
+        self.assertEqual(self.request(a,'/api/uploads/commit',{'upload':upload,'author':'aryan'})[1]['note']['id'],result['note']['id'])
+        for i,part in enumerate(parts):self.assertEqual(self.request(b,f'/api/drawing/{upload}/{i}')[1]['drawing'],part)
+        state=self.request(a,'/api/state')[1];self.assertTrue(state['streaks']['aryan']['today']);self.assertGreater(state['streaks']['aryan']['count'],0)
+        from worker.export_notes import main as export_notes
+        with tempfile.TemporaryDirectory() as folder:
+            out=Path(folder)/'import.sql';export_notes(Path(self.tmp.name)/'duet.sqlite3',out)
+            with sqlite3.connect(Path(folder)/'imported.sqlite3') as c:
+                for migration in sorted(Path('worker/migrations').glob('*.sql')):c.executescript(migration.read_text())
+                c.executescript(out.read_text());self.assertEqual(c.execute('SELECT count(*) FROM drawing_chunks WHERE upload=?',(upload,)).fetchone()[0],len(parts))
+            c.close()
+
+    def test_shared_time_and_streak_boundaries(self):
+        from drawing_api import streaks
+        now=100*86400-19800
+        rows=[{'author':'aryan','day':d} for d in (97,98,99)]
+        self.assertEqual(streaks(rows,now)['streaks']['aryan'],{'count':3,'today':False})
+        self.assertEqual(streaks(rows,now+86400)['streaks']['aryan']['count'],0)
+        rows += [{'author':'aryan','day':100}]*2
+        self.assertEqual(streaks(rows,now)['streaks']['aryan'],{'count':4,'today':True})
+        self.assertEqual(streaks(rows,now-1)['day'],99)
+        self.assertEqual(self.request(self.client(),'/api/time')[1]['timezone'],'Asia/Kolkata')
     def test_private_files_not_served(self):
         c=self.client();self.assertEqual(self.request(c,'/config.json')[0],404);self.assertEqual(self.request(c,'/server.py')[0],404);self.assertEqual(self.request(c,'/../server.py')[0],404)
 if __name__=='__main__': unittest.main()

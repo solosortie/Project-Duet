@@ -53,3 +53,40 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - Walls screen has a time-of-day background (morning, day, evening, night from the visitor's local clock): sky, stars, two drifting cloud layers, paper grain, fixed meadow hills and seven small flowers (`meadow-sprig`, `meadow-daisy`, `meadow-tulip`, `meadow-bell`). Entry and choosing screens keep their own backdrop.
 - Settings has Sound and Export tabs. Export (`public/export.js`) builds both downloads in the browser: a zip of notes (notes.json with strokes, notes.csv, PNG per canvas, readme) and a self-contained HTML copy of the walls page frozen at the current time of day. Either wall or both can be chosen.
 - Responsive check at 12 viewport sizes from 320px to 1920px, including landscape phones: no layout breakage.
+
+
+## 2026-10-21 — shared light, clock, streaks and reliable canvases
+- Preserved the existing meadow, animals, tape, paper colors and minimal interface. Both entry screens and the walls now share interpolated lighting, original sun/moon SVGs and stars. Note paper stays readable at night.
+- Added a sparse hand-drawn 12/3/6/9 clock and date. Time is anchored to the server and rendered in Asia/Kolkata across all screens; the celestial arc is illustrative.
+- Added individual streaks derived from confirmed posts, including historical notes. Kolkata midnight boundaries, duplicate posts, missed days, and first-post flame feedback are covered.
+- Added the two supplied tracks; all three cycle automatically. Settings has one small next-track control, retaining volume and mute behavior.
+- Rebuilt Duet Hand with thicker capitals and 26 real lowercase glyphs. Applied it to site labels; note typography remains separate.
+- Fixed large drawings without flattening or dropping detail: lossless packed vector chunks, immutable retries, owner checks, atomic publication and incremental hydration on both backends. Kept existing request caps. Old notes remain compatible; new canvases also work in exports.
+- Moved drafts to IndexedDB to avoid localStorage's small synchronous quota. Drafts clear only after confirmed publication. Long pointer strokes continue in a new segment rather than losing later samples.
+- Added migration 0002, retained existing data/configuration, updated Docker and SQLite-to-D1 export for chunk tables. Incomplete uploads expire after seven days; published drawings are retained.
+- Verification: 12 Python integration tests passed with the standard server and pinned Gunicorn 23.0.0; 14 Worker integration tests passed on isolated local D1; two codec/streak unit tests passed. Final focused reruns covered upload cleanup and export/import round-trip. Browser checks covered desktop/phone day and night, draft reload, confirmed text/canvas saves, streak display and next-track control; no console errors observed.
+- No production database, DNS or deployment was changed. Physical-device audio and public-host latency still require a deployed smoke check.
+
+## Final interaction polish
+- Clock appears only on walls, with a border following its circular face and the date outside. Completed, renewal and broken states tint the dial.
+- Enlarged idle flame, increasing warmth with streak length, full-screen continuation and desaturation effects returning to the badge. Broken-run feedback is deduplicated locally against the server's last posted day.
+- Layered cloud drift on onboarding and choosing, reserved edge lanes for sun/moon, livelier cat tail and deer ears.
+- Added Duet Text: lighter capitals matching genuine lowercase glyphs. Music/next and export controls have clear spacing and uneven outlined buttons.
+- Rechecked Python's 12 tests and the two standalone codec/streak checks after state changes; settings and onboarding/selection clock visibility inspected in Chromium.
+
+- Final adjustments: animal and flame timing slowed approximately 25%; date switches to warm cream at night. Confirmed a new note increments the visible daily streak in the temporary preview.
+
+- Design preference: keep buttons level, including hover states; do not add button rotation. Removed rotation from controls and added sound-panel breathing room with a subtle playback/volume divider.
+
+- Fixed header icon contrast at the source: paper buttons now own dark ink instead of inheriting night sky text. Unified settings tabs, export labels, descriptions and actions under Duet Text, with distinct font metadata. PASSCODE entry has an inset field and focus treatment; cat blink morphs eyelids smoothly instead of flashing a thick overlay.
+
+- Cat tail: replaced uniform oscillation with a slower asymmetric swish, eased reversals, diminishing follow-through and a resting pause.
+
+- Flame artwork now morphs between curved outlines. Celebrations ease into an arcing return and trigger a separate ignition animation on the badge. Reduced motion uses a still flame.
+- Added opt-in `?dev=1` controller with isolated request simulation and memory-only drawings/drafts, date acceleration, streak states/replay, scene selection, sound and editor access, latency/failure controls and sample walls. No backend debug endpoints or authentication changes. Added tests for opt-in isolation, retry behavior, failed saves and midnight transitions.
+
+- Settings title uses original bold capitals; tabs are slightly heavier. Tracks renamed Coffee / tranquil / Sky. Identity stays unboxed: dark cocoa by day and warm cream at night. Removed celestial icons. Replaced flame transforms with hand-drawn contour sequences for ignition, extinction and renewal, day-progress hue and a soft afterglow; preview renewal replays the same effect. Removed independent flame-speed control so SVG and scene timings stay synchronized.
+
+## Audit fixes
+- Worker `/api/state` reads each author's recent days through the (author, created) index instead of scanning every note on each 60 s refresh; it widens the window only when a streak reaches its edge (new test covers a 60-day run).
+- Removed a duplicate D1 binding, nine unreferenced SVGs and an empty function; `npm test` now runs unit and integration tests; restored `.gitignore`/`.dockerignore` (data, caches, databases excluded).

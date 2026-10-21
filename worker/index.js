@@ -1,4 +1,5 @@
 // Project Duet API for Cloudflare Workers + D1. Static files are served by the assets binding.
+import { uploadPost, streakState } from './drawing-api.js';
 import { validateNote } from './validate.js';
 
 const DEFAULT_MAX_BODY = 600000; // the Python server's limit; wrangler.jsonc lowers it for the free plan's 10 ms CPU cap
@@ -53,8 +54,25 @@ async function getSession(request, env) {
   return row || null;
 }
 
+// Streak input without scanning the whole notes table on every poll. Reads each author's days through the
+// (author, created) index for a recent window and widens it only when a run touches the window's first day.
+async function recentDays(env) {
+  const startOfToday = Math.floor((Date.now() / 1000 + 19800) / 86400) * 86400 - 19800;
+  for (const span of [45, 400, 40000]) {
+    const since = startOfToday - span * 86400, firstDay = Math.floor((since + 19800) / 86400);
+    const rows = [];
+    for (const author of ['aryan', 'chat']) {
+      const { results } = await env.DB.prepare('SELECT DISTINCT CAST((created+19800)/86400 AS INTEGER) day FROM notes WHERE author=? AND created>=?').bind(author, since).all();
+      for (const r of results) rows.push({ author, day: r.day });
+    }
+    if (span === 40000 || !rows.some((r) => r.day === firstDay)) return rows;
+  }
+}
+
 async function handleGet(url, session, env) {
   if (url.pathname === '/api/session') return reply(200, { person: session.person });
+  if(url.pathname==='/api/state')return reply(200,streakState(await recentDays(env)));
+  if(url.pathname.startsWith('/api/drawing/')){const bits=url.pathname.split('/');if(bits.length!==5||!/^\d+$/.test(bits[4]))return reply(400,{error:'Invalid segment.'});const row=await env.DB.prepare("SELECT d.data FROM drawing_chunks d JOIN uploads u ON u.id=d.upload JOIN notes n ON n.nonce=u.nonce AND n.format=4 AND json_extract(n.drawing,'$.upload')=d.upload WHERE d.upload=? AND d.part=?").bind(bits[3],Number(bits[4])).first();return row?reply(200,'{"drawing":'+row.data+'}'):reply(404,{error:'Drawing not found.'})}
   if (url.pathname !== '/api/notes') return reply(404, { error: 'Not found.' });
   const q = url.searchParams;
   const incremental = q.has('after');
@@ -144,6 +162,7 @@ async function handlePost(request, url, env) {
     await env.DB.prepare('DELETE FROM sessions WHERE token=?').bind(session.token).run();
     return reply(200, { ok: true }, 'duet=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict' + (secure ? '; Secure' : ''));
   }
+  if(url.pathname.startsWith('/api/uploads')){const out=await uploadPost(url.pathname,data,session.person,env);return reply(out.status,out.data)}
   if (url.pathname === '/api/notes') return handleNote(data, session, env);
   return reply(404, { error: 'Not found.' });
 }
@@ -152,6 +171,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     try {
+      if(url.pathname==='/api/time')return reply(200,{now:Date.now(),timezone:'Asia/Kolkata'});
       if (url.pathname === '/healthz') return reply(200, { ok: true });
       if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
       if (request.method === 'GET') {

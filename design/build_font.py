@@ -2,7 +2,8 @@
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from pathlib import Path
-import math, random
+import math, random, sys
+light = "--text" in sys.argv
 # Deliberately uneven, drawn centerlines. 0–100 coordinates, y points upward.
 letters={
 'A':[[(7,0),(34,97),(43,100),(76,1)],[(19,35),(61,37)]],
@@ -44,6 +45,7 @@ letters={
 '.':[[(38,1),(39,4)]],'-':[[(17,46),(62,48)]],"'": [[(40,97),(36,80)]],
 '?':[[(12,80),(23,96),(46,99),(66,84),(63,66),(42,48),(39,28)],[(38,2),(39,5)]],
 ':':[[(38,68),(39,71)],[(38,19),(39,22)]]}
+letters.update({'a': [[[60, 4], [59, 64], [37, 67], [15, 55], [10, 31], [18, 9], [38, 2], [59, 16]]], 'b': [[[12, 99], [12, 2]], [[13, 49], [30, 65], [49, 62], [63, 46], [62, 20], [44, 3], [26, 4], [12, 17]]], 'c': [[[60, 56], [43, 66], [22, 60], [11, 43], [13, 19], [30, 4], [49, 5], [61, 14]]], 'd': [[[60, 99], [61, 2]], [[59, 55], [42, 65], [23, 61], [11, 42], [13, 18], [30, 3], [47, 7], [60, 21]]], 'e': [[[12, 35], [61, 38], [58, 54], [43, 65], [23, 61], [12, 44], [12, 22], [28, 4], [48, 4], [62, 15]]], 'f': [[[22, 1], [23, 77], [31, 95], [48, 98], [57, 91]], [[8, 60], [49, 61]]], 'g': [[[60, 61], [59, -12], [47, -27], [26, -27], [14, -19]], [[59, 53], [41, 65], [22, 58], [11, 37], [18, 13], [37, 6], [57, 18]]], 'h': [[[12, 99], [12, 2]], [[13, 46], [32, 64], [48, 62], [59, 49], [60, 2]]], 'i': [[[18, 65], [19, 2]], [[18, 88], [19, 90]]], 'j': [[[26, 65], [26, -12], [17, -27], [3, -24]], [[26, 89], [27, 91]]], 'k': [[[12, 99], [12, 1]], [[58, 65], [14, 29], [61, 2]]], 'l': [[[15, 99], [16, 12], [23, 3], [31, 5]]], 'm': [[[10, 2], [10, 64]], [[11, 49], [25, 64], [39, 61], [43, 44], [43, 2]], [[44, 48], [58, 64], [71, 58], [77, 39], [77, 1]]], 'n': [[[12, 2], [11, 64]], [[12, 47], [29, 63], [47, 62], [59, 46], [59, 1]]], 'o': [[[37, 66], [18, 57], [10, 37], [17, 13], [35, 3], [54, 10], [63, 33], [56, 57], [37, 66]]], 'p': [[[12, -27], [12, 64]], [[13, 50], [31, 65], [50, 61], [63, 42], [59, 20], [42, 6], [25, 8], [13, 20]]], 'q': [[[60, -27], [60, 63]], [[59, 54], [40, 65], [22, 59], [11, 39], [16, 17], [35, 6], [52, 12], [60, 25]]], 'r': [[[12, 1], [12, 64]], [[13, 43], [29, 62], [44, 64], [53, 58]]], 's': [[[59, 56], [40, 65], [21, 59], [15, 45], [29, 34], [49, 28], [59, 15], [45, 3], [25, 4], [12, 13]]], 't': [[[25, 89], [24, 17], [31, 4], [48, 5], [56, 13]], [[9, 62], [53, 63]]], 'u': [[[12, 65], [13, 19], [25, 4], [42, 5], [59, 22]], [[59, 65], [60, 2]]], 'v': [[[8, 64], [32, 2], [40, 3], [64, 65]]], 'w': [[[7, 65], [20, 3], [40, 43], [58, 3], [74, 65]]], 'x': [[[10, 64], [62, 1]], [[60, 65], [11, 2]]], 'y': [[[9, 65], [32, 4]], [[63, 65], [28, -18], [16, -28], [6, -25]]], 'z': [[[11, 62], [60, 64], [12, 3], [62, 4]]]})
 fb=FontBuilder(1000,isTTF=True); order=['.notdef','space']+['uni%04X'%ord(c) for c in letters];fb.setupGlyphOrder(order)
 glyphs={};metrics={};cmap={32:'space'}
 for index,name in enumerate(order):
@@ -52,7 +54,7 @@ for index,name in enumerate(order):
         ch=chr(int(name[3:],16)); rng=random.Random(ord(ch)); paths=letters[ch]
         for path in paths:
             points=[(x*7+55+rng.uniform(-2,2),y*7+100+rng.uniform(-2,2)) for x,y in path]
-            radius=43
+            radius=(29 if ch.isupper() else 27 if ch.islower() else 29) if light else (50 if ch.isupper() else 28 if ch.islower() else 36)
             # Round-ended ink strokes, with tiny variations in each glyph.
             for x,y in points:
                 ring=[(round(x+radius*math.cos(i*math.tau/12)),round(y+radius*math.sin(i*math.tau/12))) for i in range(12)]
@@ -63,9 +65,10 @@ for index,name in enumerate(order):
                 dx=-(v-y)/length*radius;dy=(u-x)/length*radius
                 pen.moveTo((round(x-dx),round(y-dy)));pen.lineTo((round(u-dx),round(v-dy)));pen.lineTo((round(u+dx),round(v+dy)));pen.lineTo((round(x+dx),round(y+dy)));pen.closePath()
         cmap[ord(ch)]=name
-        if ch.isalpha():cmap[ord(ch.lower())]=name
-    glyphs[name]=pen.glyph();metrics[name]=(710 if name!='space' else 320,25)
-fb.setupGlyf(glyphs);fb.setupHorizontalMetrics(metrics);fb.setupHorizontalHeader(ascent=900,descent=-100);fb.setupCharacterMap(cmap)
-fb.setupNameTable({'familyName':'Duet Hand','styleName':'Regular','uniqueFontIdentifier':'ProjectDuetHand-1','fullName':'Duet Hand Regular','psName':'DuetHand-Regular','version':'Version 1.0'})
-fb.setupOS2(sTypoAscender=900,sTypoDescender=-100,usWinAscent=900,usWinDescent=100);fb.setupPost();fb.setupMaxp()
-fb.save(Path(__file__).resolve().parents[1]/'public/assets/duet-hand.ttf')
+
+    glyphs[name]=pen.glyph();metrics[name]=((350 if ch in 'il' else 390 if ch=='j' else 680 if ch.islower() else 730) if name not in ('.notdef','space') else 320,25)
+fb.setupGlyf(glyphs);fb.setupHorizontalMetrics(metrics);fb.setupHorizontalHeader(ascent=900,descent=-220);fb.setupCharacterMap(cmap)
+family='Duet Text' if light else 'Duet Hand'
+fb.setupNameTable({'familyName':family,'styleName':'Regular','uniqueFontIdentifier':family.replace(' ','')+'-2','fullName':family+' Regular','psName':family.replace(' ','')+'-Regular','version':'Version 2.0'})
+fb.setupOS2(sTypoAscender=900,sTypoDescender=-220,usWinAscent=900,usWinDescent=220);fb.setupPost();fb.setupMaxp()
+fb.save(Path(__file__).resolve().parents[1]/('public/assets/duet-text.ttf' if light else 'public/assets/duet-hand.ttf'))

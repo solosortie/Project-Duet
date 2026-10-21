@@ -72,7 +72,7 @@ async function exportNotes(){
   const exportedAt=new Date().toISOString();
   const json={app:'Project Duet',exported_at:exportedAt,exported_by:person,walls:walls(),note_count:records.length,notes:records};
   const head=['id','created','wall','author','kind','paper','text_size','stroke_count','image','text'];
-  const csv='\ufeff'+[head.join(',')].concat(records.map(r=>[r.id,r.created_iso,NAMES[r.wall]||r.wall,NAMES[r.author]||r.author,r.kind,r.paper,r.text_size,r.strokes.length,r.image||'',r.text].map(csvCell).join(','))).join('\r\n')+'\r\n';
+  const csv='\ufeff'+[head.join(',')].concat(records.map(r=>[r.id,r.created_iso,NAMES[r.recipient]||r.recipient,NAMES[r.author]||r.author,r.kind,r.paper,r.text_size,r.strokes.length,r.image||'',r.text].map(csvCell).join(','))).join('\r\n')+'\r\n';
   const readme=['Project Duet export','Exported: '+exportedAt,'Walls: '+walls().map(w=>NAMES[w]).join(', '),'Notes: '+records.length,'',
     'notes.json  every note with its details: id, author, wall, created time (unix seconds and ISO), paper, kind, text size, text, the original id used for retries, and the drawing strokes exactly as stored.',
     'notes.csv   the same details without the strokes, for a spreadsheet.',
@@ -116,7 +116,7 @@ async function exportPage(){
     const heading=q('.wall[data-owner='+w+'] .wall-heading').outerHTML;
     return '<section class="wall active" data-owner="'+w+'">'+heading+'<div class="notes">'+list.filter(n=>n.recipient===w).map(cardHtml).join('')+'</div></section>';
   }).join('');
-  const body='<body data-view="walls" data-time="'+time+'">'+q('.walls-bg').outerHTML+
+  const body='<body data-view="walls" data-time="'+time+'" data-celestial="'+document.body.dataset.celestial+'" style="'+document.body.style.cssText.replaceAll('"','&quot;')+'">'+q('.walls-bg').outerHTML+
     '<header class="site-header"><div class="brand-scene"><div class="wordmark"><span class="project-word">PROJECT</span> <span>DUET</span></div></div></header>'+
     '<main><section id="walls"><div class="wall-grid'+(wallChoice==='both'?'':' single')+'">'+sections+'</div></section></main></body>';
   const html='<!doctype html>\n<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Project Duet</title><style>'+css+EXTRA+'</style></head>\n<!-- Saved from Project Duet on '+new Date().toISOString()+' ('+time+') -->\n'+await inlineImages(body)+'</html>';

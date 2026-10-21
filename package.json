@@ -8,7 +8,8 @@
     "db:local": "wrangler d1 migrations apply duet --local",
     "db:remote": "wrangler d1 migrations apply duet --remote",
     "backup": "wrangler d1 export duet --remote --output backups/duet-latest.sql",
-    "test": "node worker/test.mjs"
+    "test": "npm run test:unit && node worker/test.mjs",
+    "test:unit": "node --test worker/drawing-test.mjs worker/dev-preview-test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

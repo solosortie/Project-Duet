@@ -2,6 +2,7 @@
 """Project Duet — dependency-free local/server deployment."""
 import os, json, sqlite3, secrets, hashlib, hmac, time, mimetypes, io
 from email.message import Message
+from drawing_api import post_upload, streaks
 from http import HTTPStatus
 from pathlib import Path
 from contextlib import contextmanager
@@ -24,6 +25,7 @@ with db() as c:
     CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, person TEXT, expires REAL);
     CREATE TABLE IF NOT EXISTS notes(id INTEGER PRIMARY KEY AUTOINCREMENT, nonce TEXT UNIQUE, author TEXT, recipient TEXT, text TEXT, drawing TEXT, paper TEXT, created REAL);
     CREATE TABLE IF NOT EXISTS attempts(ip TEXT PRIMARY KEY, count INTEGER, until REAL);''')
+    c.executescript((ROOT/'worker/migrations/0002_drawings.sql').read_text())
     columns = {r[1] for r in c.execute('PRAGMA table_info(notes)')}
     if 'format' not in columns: c.execute('ALTER TABLE notes ADD COLUMN format INTEGER NOT NULL DEFAULT 1')
     if 'text_size' not in columns: c.execute('ALTER TABLE notes ADD COLUMN text_size INTEGER NOT NULL DEFAULT 40')
@@ -44,11 +46,22 @@ class Routes:
         return row
     def do_GET(self):
         p=urlparse(self.path)
+        if p.path=='/api/time': return self.send(200,{'now':time.time()*1000,'timezone':'Asia/Kolkata'})
         if p.path=='/healthz': return self.send(200,{'ok':True})
         if p.path.startswith('/api/'):
             s=self.session()
             if not s: return self.send(401,{'error':'Please enter the passphrase.'})
             if p.path=='/api/session': return self.send(200,{'person':s['person']})
+            if p.path=='/api/state':
+                with db() as c: rows=c.execute('SELECT author, CAST((created+19800)/86400 AS INTEGER) day FROM notes GROUP BY author,day').fetchall()
+                return self.send(200,streaks(rows,time.time()))
+            if p.path.startswith('/api/drawing/'):
+                bits=p.path.split('/')
+                if len(bits)!=5 or not bits[4].isdigit(): return self.send(400,{'error':'Invalid segment.'})
+                with db() as c:
+                    row=c.execute('SELECT d.data FROM drawing_chunks d JOIN uploads u ON u.id=d.upload JOIN notes n ON n.nonce=u.nonce AND n.format=4 AND json_extract(n.drawing,"$.upload")=d.upload WHERE d.upload=? AND d.part=?',(bits[3],int(bits[4]))).fetchone()
+                if not row: return self.send(404,{'error':'Drawing not found.'})
+                return self.send(200,{'drawing':json.loads(row['data'])})
             if p.path=='/api/notes':
                 q=parse_qs(p.query)
                 try:
@@ -102,6 +115,7 @@ class Routes:
         if path=='/api/logout':
             with db() as c: c.execute('DELETE FROM sessions WHERE token=?',(s['token'],))
             return self.send(200,{'ok':True},'duet=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict')
+        if path.startswith('/api/uploads'): return self.send(*post_upload(path,data,s['person'],db))
         if path=='/api/notes':
             if not s['person']: return self.send(403,{'error':'Choose your name first.'})
             if data.get('author',s['person'])!=s['person']: return self.send(409,{'error':'Your identity changed in another tab. Close this draft and choose your name again; the draft is kept.'})

@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import {webcrypto} from 'node:crypto';
+import {streakState} from './drawing-api.js';
+const context=vm.createContext({window:{},crypto:webcrypto,TextEncoder,console});vm.runInContext(readFileSync('public/drawing-store.js','utf8')+';this.codec=DrawingStore;',context);
+test('lossless mixed-pressure vector packing and chunked hydration',async()=>{
+ const stroke={tool:'ink',color:'#594739',width:28,points:Array.from({length:4000},(_,i)=>i%2?[i%1000,i%720,.33]:[i%1000,i%720])};const input={author:'aryan',nonce:'round-trip-test',format:2,text:'',text_size:40,paper:'cream',drawing:Array.from({length:40},()=>structuredClone(stroke))};
+ assert.equal(JSON.stringify(context.codec.unpack(context.codec.pack(stroke))),JSON.stringify(stroke));const chunks=[];
+ const request=async(path,data)=>{assert.ok(JSON.stringify(data||{}).length<180000);if(path==='uploads')return {ok:true};if(path==='uploads/chunk'){chunks[data.part]=data.drawing;return {ok:true}}if(path==='uploads/commit')return {note:{format:4,drawing:{upload:data.upload,chunks:chunks.length}}};return {drawing:chunks[Number(path.split('/').at(-1))]}};
+ const result=await context.codec.save(input,request,()=>{}),restored=await context.codec.hydrate(result.note,request);assert.equal(JSON.stringify(restored.drawing),JSON.stringify(input.drawing));assert.ok(chunks.length>1);
+});
+test('Kolkata midnight, missed day and duplicate-post streak rules',()=>{const now=(100*86400-19800)*1000,rows=[97,98,99].map(day=>({author:'chat',day}));assert.deepEqual(streakState(rows,now).streaks.chat,{count:3,today:false});assert.equal(streakState(rows,now+86400000).streaks.chat.count,0);rows.push({author:'chat',day:100},{author:'chat',day:100});assert.deepEqual(streakState(rows,now).streaks.chat,{count:4,today:true});assert.equal(streakState(rows,now-1).day,99)});
