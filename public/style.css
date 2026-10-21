@@ -273,3 +273,19 @@ body[data-streak=broken] #streak:before{opacity:0}body[data-streak=broken] #stre
 #streak-scene img{transform:none;filter:hue-rotate(var(--flame-hue,0deg));position:relative;z-index:1}
 #streak-scene:before{content:'';position:absolute;left:50%;top:48%;width:min(70vw,520px);height:min(70vw,520px);transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,var(--flame-glow,#e6aa6340),transparent 68%);pointer-events:none}
 #streak-scene.broken img{filter:none}#streak-scene.broken:before{background:radial-gradient(ellipse,#96857330,transparent 68%)}
+
+/* Grounded wall vignettes use their own shared coordinate systems. */
+.wall-heading:after{display:none}.wall-heading{height:230px}
+.wall-heading img,.wall[data-owner=chat] .wall-heading img{width:320px;max-width:96%;height:auto;bottom:0}
+.streak-contributions{display:flex;gap:3px;position:absolute;bottom:-5px;left:7px}.streak-contributions i{width:7px;height:7px;border:1px solid var(--cocoa);border-radius:50%;background:var(--cream);transition:background .25s}.streak-contributions i.posted{background:#b07a3e}
+#streak-count{display:inline-block;min-width:1ch;font-variant-numeric:tabular-nums}
+#streak.flame-travelling>img{opacity:0!important}
+#streak-scene{animation:none;background:none;backdrop-filter:none;overflow:hidden}
+#streak-scene:before,#streak-scene.broken:before{inset:0;width:auto;height:auto;transform:none;border-radius:0;background:radial-gradient(ellipse at center,var(--flame-glow,#e6aa6330),#f2e8d5cc 65%);backdrop-filter:blur(2px);animation:streak-veil var(--scene-duration) linear both}
+#streak-scene img{width:clamp(150px,28vw,230px);height:auto;animation:none;transform-origin:center}
+#streak-scene span{animation:streak-label var(--scene-duration) linear both}
+@keyframes streak-veil{0%,100%{opacity:0}12%,50%{opacity:1}80%{opacity:0}}
+@keyframes streak-label{0%,100%{opacity:0}15%,45%{opacity:1}65%{opacity:0}}
+.day-clock.renewed #clock-face{animation-duration:.8s}
+@media(max-width:620px){.wall-heading{height:205px}.wall-heading img,.wall[data-owner=chat] .wall-heading img{width:280px}.streak-contributions{left:3px;bottom:-3px}.streak-contributions i{width:5px;height:5px}}
+@media(prefers-reduced-motion:reduce){#streak-scene:before,#streak-scene span{animation:none}.streak-contributions i{transition:none}}

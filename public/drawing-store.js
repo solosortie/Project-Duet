@@ -17,5 +17,5 @@ const Drafts=(()=>{
  const open=new Promise((resolve,reject)=>{if(!window.indexedDB)return reject(Error('Draft storage unavailable'));const req=indexedDB.open('project-duet',1);req.onupgradeneeded=()=>req.result.createObjectStore('drafts');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});open.catch(()=>{});
  const previewDrafts=new Map();
  async function run(mode,key,value){if(window.DuetDev){if(mode==='get')return previewDrafts.get(key);if(mode==='put')previewDrafts.set(key,structuredClone(value));else previewDrafts.delete(key);return;}const db=await open;return new Promise((resolve,reject)=>{const tx=db.transaction('drafts',mode==='get'?'readonly':'readwrite'),store=tx.objectStore('drafts');const req=mode==='get'?store.get(key):mode==='put'?store.put(value,key):store.delete(key);tx.oncomplete=()=>resolve(req.result);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}
- return {get:async(key,fallback)=>{try{return await run('get',key)??(window.DuetDev?undefined:fallback)}catch{return fallback}},set:(key,value)=>run('put',key,value),remove:key=>run('delete',key)};
+ return {get:async(key,fallback)=>{try{return await run('get',key)??fallback}catch{return fallback}},set:(key,value)=>run('put',key,value),remove:key=>run('delete',key)};
 })();

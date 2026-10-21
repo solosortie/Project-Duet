@@ -90,3 +90,17 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 ## Audit fixes
 - Worker `/api/state` reads each author's recent days through the (author, created) index instead of scanning every note on each 60 s refresh; it widens the window only when a streak reaches its edge (new test covers a 60-day run).
 - Removed a duplicate D1 binding, nine unreferenced SVGs and an empty function; `npm test` now runs unit and integration tests; restored `.gitignore`/`.dockerignore` (data, caches, databases excluded).
+
+## 2026-10-22 — final release verification
+- Preserved the latest local patches. Flame contours retain a fixed base/tip height through idle cycles and run 50% slower; removed floating sparks from idle/renewal.
+- Checked onboarding, choosing and walls at seven viewport sizes (320×568 through 1440×900, including landscape); no horizontal overflow and header controls stayed within bounds. Inspected mobile settings and both editors at 320px; editors scroll vertically. Physical phones and mobile keyboards were not tested.
+- Fixed an empty-preview-draft fallback discovered during the editor check; added regression coverage.
+- Current Python suite: 12 passing tests. Unit suites pass. Wrangler deployment dry run succeeds. Verified migration 0002 preserves an existing note's full row and ID. Earlier Worker integration coverage remains documented above; no remote database was changed or deployment performed.
+
+## Shared streak and grounded wall scenes
+- Shared daily completion now requires one confirmed note/drawing from each person. Historical day intersections determine the count; repeat posts do not double-count. Both backends retain existing notes and expose contribution progress.
+- Added smooth number changes, two contribution marks, a continuous 2.4-second flame-to-badge flight, 1.7-second broken-state sequence and local 0.8-second renewal. Pending days retain the count. Remote posts refresh streak state through the existing note-sync loop.
+- Wall animals now share SVG coordinates with their support: grassy soil bank for deer; short-legged wooden table, saucer and coffee mug for cat. Enlarged scenes proportionally; no floating divider lines. Preserved patched animal contours and tail/ear loops; removed body bobbing that lifted them off the surfaces. Still variants included.
+- Updated the developer preview to shared streak controls and tested first/second contributions, retry duplicates, midnight renewal, missed days and restarted runs.
+
+- Validation: 13 Python integration tests and unit suites pass; Cloudflare deployment dry run succeeds. Both scenes inspected at desktop, 390px and 320px phone widths. Existing notes are untouched; shared streak totals can differ because only days with both authors now qualify.

@@ -9,7 +9,12 @@ def streaks(rows,now):
         completed=today in days;day=today if completed else today-1;count=0
         while day in days: count+=1;day-=1
         result[person]={'count':count,'today':completed}
-    return {'now':now*1000,'timezone':'Asia/Kolkata','day':today,'streaks':result,'lastDays':{p:max((int(r['day']) for r in rows if r['author']==p),default=None) for p in ('aryan','chat')}}
+    days_by_person={p:{int(row['day']) for row in rows if row['author']==p} for p in ('aryan','chat')}
+    common=days_by_person['aryan'] & days_by_person['chat']
+    day=today if today in common else today-1;count=0
+    while day in common: count+=1;day-=1
+    shared={'count':count,'today':today in common,'contributions':{p:today in days for p,days in days_by_person.items()},'lastCompletedDay':max(common,default=None)}
+    return {'now':now*1000,'timezone':'Asia/Kolkata','day':today,'streaks':result,'shared':shared,'lastDays':{p:max(days,default=None) for p,days in days_by_person.items()}}
 
 def packed_valid(items):
     if not isinstance(items,list) or not 1<=len(items)<=40:return False

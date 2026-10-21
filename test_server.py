@@ -156,6 +156,19 @@ class DuetTests(unittest.TestCase):
         self.assertEqual(streaks(rows,now)['streaks']['aryan'],{'count':4,'today':True})
         self.assertEqual(streaks(rows,now-1)['day'],99)
         self.assertEqual(self.request(self.client(),'/api/time')[1]['timezone'],'Asia/Kolkata')
+    def test_shared_streak_requires_both_people(self):
+        from drawing_api import streaks
+        now=100*86400-19800
+        rows=[{'author':p,'day':day} for p in ('aryan','chat') for day in (97,98,99)]
+        rows.append({'author':'aryan','day':100})
+        self.assertEqual(streaks(rows,now)['shared']['count'],3)
+        self.assertEqual(streaks(rows,now)['shared']['contributions'],{'aryan':True,'chat':False})
+        rows += [{'author':'chat','day':100}]*2
+        self.assertEqual(streaks(rows,now)['shared']['count'],4)
+        self.assertEqual(streaks(rows,now+86400)['shared']['count'],4)
+        self.assertEqual(streaks(rows,now+2*86400)['shared']['count'],0)
+        rows += [{'author':p,'day':102} for p in ('aryan','chat')]
+        self.assertEqual(streaks(rows,now+2*86400)['shared']['count'],1)
     def test_private_files_not_served(self):
         c=self.client();self.assertEqual(self.request(c,'/config.json')[0],404);self.assertEqual(self.request(c,'/server.py')[0],404);self.assertEqual(self.request(c,'/../server.py')[0],404)
 if __name__=='__main__': unittest.main()

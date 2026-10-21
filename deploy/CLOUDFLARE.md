@@ -24,7 +24,7 @@ Without the secret, the default passphrase (hash in `wrangler.jsonc`) applies.
 
 ## Upgrade an existing deployment
 
-Keep your existing database ID and secret. Back up first, then apply migrations before deploying this version:
+Keep your existing database ID and secret. Do not create a replacement D1 database or import the sample/local database over the live one. Back up first, then apply migrations before deploying this version:
 
 ```sh
 npm ci

@@ -81,7 +81,7 @@ async function sync(older=false){
   if(syncing||!person)return;syncing=true;const owner=person;
   try{
     if(!initialized||older){const cursor=older&&notes.size?Math.min(...notes.keys()):null;const result=await api('notes'+(cursor?'?before='+cursor:''));if(owner!==person)return;for(const n of result.notes)notes.set(n.id,n);hasMore=result.more;if(!initialized){syncCursor=Math.max(0,...result.notes.map(n=>n.id));initialized=true}render()}
-    else {let more=true;while(more){const result=await api('notes?after='+syncCursor);if(owner!==person)return;if(result.notes.length){for(const n of result.notes)notes.set(n.id,n);syncCursor=result.notes[result.notes.length-1].id;render()}more=result.more}}
+    else {let more=true;while(more){const result=await api('notes?after='+syncCursor);if(owner!==person)return;if(result.notes.length){for(const n of result.notes)notes.set(n.id,n);syncCursor=result.notes[result.notes.length-1].id;render();window.dispatchEvent(new Event('duet:updated'))}more=result.more}}
     $('#connection').textContent='';
   }catch(e){$('#connection').textContent=e.message}finally{syncing=false}
 }
