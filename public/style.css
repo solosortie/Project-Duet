@@ -289,3 +289,5 @@ body[data-streak=broken] #streak:before{opacity:0}body[data-streak=broken] #stre
 .day-clock.renewed #clock-face{animation-duration:.8s}
 @media(max-width:620px){.wall-heading{height:205px}.wall-heading img,.wall[data-owner=chat] .wall-heading img{width:280px}.streak-contributions{left:3px;bottom:-3px}.streak-contributions i{width:5px;height:5px}}
 @media(prefers-reduced-motion:reduce){#streak-scene:before,#streak-scene span{animation:none}.streak-contributions i{transition:none}}
+/* Rooms: hide the page until the room's names and animals are known (see room.js). */
+.room-wait body{visibility:hidden}

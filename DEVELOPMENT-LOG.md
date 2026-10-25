@@ -104,3 +104,10 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - Updated the developer preview to shared streak controls and tested first/second contributions, retry duplicates, midnight renewal, missed days and restarted runs.
 
 - Validation: 13 Python integration tests and unit suites pass; Cloudflare deployment dry run succeeds. Both scenes inspected at desktop, 390px and 320px phone widths. Existing notes are untouched; shared streak totals can differ because only days with both authors now qualify.
+
+## Rooms and approval
+- Migration 0003 adds `rooms` and a `room_id` on notes, sessions and uploads; room 1 is the original room. Every Worker query is room-scoped; nonces, uploads and drawing chunks cannot cross rooms (covered by `worker/rooms-test.mjs`).
+- `/dev` maker, `/dev/review` owner approval, `/<address>` rooms (single-page fallback + `room.js`). Requests are pending until approved; limits and reserved addresses apply.
+- The Python server stays single-room.
+- Onboarding reduced to three cards; scene animals stay fixed; address suggestions; passphrase generator and invite copy; request status is remembered; creation is retry-safe; passphrases need 8+ characters.
+- What-it-is page with a read-first button, music after the button, deer placed on the hill crest by measuring the art, `/` switches to the welcome page when the original wall is given an address (`move-home`), old logins and drafts carry over.

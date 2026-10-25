@@ -46,8 +46,10 @@ test('health, static files, security headers, private files', async () => {
   assert.match(await home.text(), /Project Duet/);
   assert.match(home.headers.get('content-security-policy') || '', /default-src 'self'/);
   assert.equal(home.headers.get('x-content-type-options'), 'nosniff');
-  for (const p of ['/config.json', '/server.py', '/worker/index.js', '/wrangler.jsonc', '/package.json', '/test_server.py']) {
-    assert.equal((await fetch(BASE + p)).status, 404, `${p} must not be served`);
+  for (const p of ['/config.json', '/server.py', '/worker/index.js', '/wrangler.jsonc', '/package.json', '/test_server.py', '/.dev.vars', '/data/duet.sqlite3']) {
+    const r = await fetch(BASE + p), t = await r.text();
+    assert.ok(r.status === 404 || /<title>Project Duet/.test(t), `${p} must be 404 or the app shell`);
+    assert.ok(!/ADMIN_PASSPHRASE|DUET_PASSPHRASE_SHA256|CREATE TABLE|import sqlite3|"d1_databases"/.test(t), `${p} must not expose project files`);
   }
 });
 
