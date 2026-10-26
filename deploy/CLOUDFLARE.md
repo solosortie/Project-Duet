@@ -86,7 +86,7 @@ own passphrase and notes.
 | Address | What it is |
 |---|---|
 | `/` | the original room |
-| `/dev` | a plain what-it-is page with an "I have read this, continue" button (music starts then, with an on/off button), followed by the maker, three cards: names and animals, address, passphrase (8+ characters, or a generated one), then **Send request** |
+| `/dev` | a plain what-it-is page with an "I have read this, continue" button (music starts then, with an on/off button), followed by the maker, three cards: names and animals, address (1 to 24 characters), passphrase (3 or more characters; the generated one is much stronger), then **Send request** |
 | `/dev/review` | owner review: approve, decline, open or delete a duet (needs `ADMIN_PASSPHRASE`) |
 | `/<address>` | a duet. Pending: a waiting page that opens the room by itself once approved. Unknown: a "nobody here" page |
 
@@ -103,7 +103,7 @@ How it behaves:
 ```sh
 npm install
 npm run backup                                          # copy of your notes first
-npx wrangler d1 migrations apply duet --remote          # adds rooms; your notes become room 1
+npx wrangler d1 migrations apply duet --remote          # adds rooms and the streak cache; your notes become room 1
 npx wrangler secret put ADMIN_PASSPHRASE                # your owner passphrase for /dev/review
 npx wrangler deploy
 ```
@@ -137,3 +137,10 @@ Nothing is copied: your wall is already a room in the same database, so its note
 To undo it, press the same arrow and type `home`. Your passphrase stays whatever `DUET_PASSPHRASE` is set to.
 
 Each visit to `/` now passes through the Worker once (one request), so the welcome page costs a little of the free daily budget; images, scripts and music do not.
+
+### Short passphrases and addresses
+
+A passphrase may be as short as 3 characters and an address as short as 1. That is easy to type but easy to guess:
+failed sign-ins are limited to 10 per visitor per 10 minutes, which slows guessing but does not stop a determined
+attacker using many connections. The generated five-word passphrase is the safe default; short addresses can also be
+claimed first by whoever asks first, which is where your approval step helps.

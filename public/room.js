@@ -2,8 +2,8 @@
    names and animals (or shows the waiting / nobody-here page) and personalises the page. */
 (function () {
   var path = location.pathname;
-  if (path.length > 1 && /\/$/.test(path) && /^\/[a-z0-9-]{3,24}\/$/.test(path)) { location.replace(path.slice(0, -1) + location.search); return; }
-  var m = path.match(/^\/([a-z0-9](?:[a-z0-9-]{1,22})[a-z0-9])$/);
+  if (path.length > 1 && /^\/[a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?\/$/.test(path)) { location.replace(path.slice(0, -1) + location.search); return; }
+  var m = path.match(/^\/([a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?)$/);
   var slug = m && m[1];
   var SCRIPTS = ['/drawing-store.js', '/app.js', '/ambience.js', '/export.js'];
   function start() {

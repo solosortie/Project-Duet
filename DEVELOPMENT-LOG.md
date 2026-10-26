@@ -111,3 +111,9 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - The Python server stays single-room.
 - Onboarding reduced to three cards; scene animals stay fixed; address suggestions; passphrase generator and invite copy; request status is remembered; creation is retry-safe; passphrases need 8+ characters.
 - What-it-is page with a read-first button, music after the button, deer placed on the hill crest by measuring the art, `/` switches to the welcome page when the original wall is given an address (`move-home`), old logins and drafts carry over.
+- Onboarding text is one bold font (`design/build_onboarding_font.py` builds `duet-hand-bold.ttf`: equal stroke weight for every letter, lowercase included, plus the punctuation the original lacks); title and card labels stay in the app's Duet Hand.
+- Passphrase minimum is 3 characters and addresses are 1 to 24 characters (client, server and tests).
+- `/api/state` serves a cached streak result (`room_state`, migration 0004) that is recomputed only when a note arrives or the day changes; reading it no longer depends on how many notes a room holds.
+- Streak lookup no longer fails when its cache table is missing (deploy before migration is safe).
+- Drawing speed: finished strokes live on a cached layer and only the stroke in progress is redrawn once per frame; the page behind an open dialog stops animating and the editor backdrop is no longer blurred. Measured pointer latency fell from 103-156 ms to 7-11 ms per event (35 ms instead of 307 ms on a 4x slower CPU).
+- Wall notes are cropped from their stroke bounds (no full-canvas pixel read-back) and painted when they near the screen; building a card went from 12 ms to 3.5 ms. Note dates use the room's time zone.

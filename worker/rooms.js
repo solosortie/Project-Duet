@@ -9,7 +9,7 @@ const ADMIN_COOKIE = 'duet_admin';
 const DAY = 86400;
 
 export const SLUG_HEADER = 'X-Duet-Room';
-export const slugShape = (s) => typeof s === 'string' && /^[a-z0-9](?:[a-z0-9-]{1,22})[a-z0-9]$/.test(s) && !s.includes('--');
+export const slugShape = (s) => typeof s === 'string' && /^(?:[a-z0-9]|[a-z0-9][a-z0-9-]{0,22}[a-z0-9])$/.test(s) && !s.includes('--');
 export const slugFree = (s) => slugShape(s) && !RESERVED.has(s);
 export const cookieName = (slug) => (slug === 'home' ? 'duet' : `duet_${slug}`);
 
@@ -61,7 +61,7 @@ export async function createRoom(request, data, env, ctx) {
   const dynamic = data.dynamic === undefined ? 'partners' : data.dynamic;
   if (!DYNAMICS.includes(dynamic)) return reply(400, { error: 'Choose a dynamic.' });
   if (!slugFree(slug)) return reply(400, { error: 'That address is not available.' });
-  if ([...pass].length < 8 || [...pass].length > 64) return reply(400, { error: 'Passphrase needs at least eight characters.' });
+  if ([...pass].length < 3 || [...pass].length > 64) return reply(400, { error: 'Passphrase needs at least three characters.' });
 
   const twin = await env.DB.prepare('SELECT status,salt,pass_hash,name_a,name_b FROM rooms WHERE slug=?').bind(slug).first();
   if (twin && twin.status === 'pending' && twin.name_a === names[0] && twin.name_b === names[1] && twin.pass_hash === await sha256(`${twin.salt}:${pass}`)) {
@@ -160,6 +160,7 @@ export async function adminRoute(request, url, data, env, secure) {
       env.DB.prepare('DELETE FROM uploads WHERE room_id=?').bind(room.id),
       env.DB.prepare('DELETE FROM notes WHERE room_id=?').bind(room.id),
       env.DB.prepare('DELETE FROM sessions WHERE room_id=?').bind(room.id),
+      env.DB.prepare('DELETE FROM room_state WHERE room_id=?').bind(room.id),
       env.DB.prepare('DELETE FROM rooms WHERE id=?').bind(room.id),
     ]);
     forget(slug);

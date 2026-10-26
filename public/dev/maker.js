@@ -28,7 +28,7 @@
   };
   function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
   function slugify(t) { return t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24).replace(/-+$/, ''); }
-  function slugShape(s) { return /^[a-z0-9][a-z0-9-]{1,22}[a-z0-9]$/.test(s) && s.indexOf('--') < 0; }
+  function slugShape(s) { return /^(?:[a-z0-9]|[a-z0-9][a-z0-9-]{0,22}[a-z0-9])$/.test(s) && s.indexOf('--') < 0; }
   var NAME = /^[\p{L}\p{N}][\p{L}\p{N} .'’-]{0,19}$/u;
   function namesState() {
     var a = S.a.n.trim(), b = S.b.n.trim();
@@ -39,7 +39,7 @@
   function valid() {
     if (S.i === 0) return namesState() === 'ok';
     if (S.i === 1) return slugShape(S.slug) && S.ok === true;
-    return Array.from(S.pass).length >= 8;
+    return Array.from(S.pass).length >= 3;
   }
   function hint(text, cls) { var e = $('#hint'); if (e) { e.textContent = text || ''; e.className = 'hint' + (cls ? ' ' + cls : ''); } }
   function refresh() {
@@ -47,10 +47,10 @@
     if (S.i === 0) { var n = namesState(); hint(n === 'ok' ? '' : n, n && n !== 'ok' ? 'bad' : ''); }
     if (S.i === 1) {
       var s = S.slug, st = $('#st');
-      if (!s) hint(''); else if (!slugShape(s)) hint('3 to 24 letters, numbers or hyphens.', 'bad'); else if (S.ok === false) hint('Not available. Try another.', 'bad'); else if (S.ok === true) hint('Free.', 'good'); else hint('');
+      if (!s) hint(''); else if (!slugShape(s)) hint('1 to 24 letters, numbers or hyphens.', 'bad'); else if (S.ok === false) hint('Not available. Try another.', 'bad'); else if (S.ok === true) hint('Free.', 'good'); else hint('');
       if (st) { st.className = 'ic ' + (S.ok === true ? 'ok' : S.ok === false && s ? 'no' : ''); st.innerHTML = !s ? '' : !slugShape(s) ? I.no : S.ok === null ? '<i class="sp"></i>' : S.ok ? I.ok : I.no; }
     }
-    if (S.i === 2) { var len = Array.from(S.pass).length; hint(len && len < 8 ? 'At least 8 characters.' : '', len && len < 8 ? 'bad' : ''); }
+    if (S.i === 2) { var len = Array.from(S.pass).length; hint(len && len < 3 ? 'At least 3 characters.' : len >= 3 && len < 8 ? 'Longer is safer.' : '', len && len < 3 ? 'bad' : ''); }
   }
 
   /* ---- address: check what is typed, and offer free variations of the names ---- */

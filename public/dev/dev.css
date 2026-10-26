@@ -1,12 +1,11 @@
 @font-face{font-family:'Duet Hand';src:url(/assets/duet-hand.ttf) format('truetype')}
-@font-face{font-family:'Duet Text';src:url(/assets/duet-text.ttf) format('truetype')}
-@font-face{font-family:'Duet Script';src:url(/assets/handwriting.ttf) format('truetype')}
+@font-face{font-family:'Duet Hand Bold';src:url(/assets/duet-hand-bold.ttf) format('truetype')}
 :root{--ink:#594739;--muted:#85745f;--sky1:#f5ecda;--sky2:#ecdfc6;--cf:none;--co:1;--hf:none;--st:0;--vig:#7a5a2c14;--hh:clamp(96px,17vh,160px)}
 body[data-time=morning]{--sky1:#f8e5cf;--sky2:#efdcc4;--cf:sepia(.35) saturate(1.6) hue-rotate(-12deg);--hf:brightness(1.04) saturate(1.05)}
 body[data-time=evening]{--sky1:#f0d3b8;--sky2:#d9b9a2;--cf:sepia(.7) saturate(2.4) hue-rotate(-28deg) brightness(.97);--hf:hue-rotate(-14deg) brightness(.86) saturate(.85)}
 body[data-time=night]{--ink:#efe3cf;--muted:#b9ad9a;--sky1:#2c3145;--sky2:#3d3b4d;--cf:brightness(.38) saturate(.5);--co:.7;--hf:brightness(.42) saturate(.65) hue-rotate(8deg);--st:1;--vig:#00000030}
 *{box-sizing:border-box}html,body{margin:0}
-body{min-height:100vh;color:var(--ink);font:16px Georgia,serif;overflow-x:hidden;transition:color .6s}
+body{min-height:100vh;color:var(--ink);font:16px 'Duet Hand Bold',sans-serif;font-synthesis:none;overflow-x:hidden;transition:color .6s}
 button,input{font:inherit;color:inherit}a{color:inherit}
 .bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}.bg>*{position:absolute}
 .sky{inset:0;background:linear-gradient(180deg,var(--sky1),var(--sky2) 70%);transition:background 1s}
@@ -24,7 +23,7 @@ button,input{font:inherit;color:inherit}a{color:inherit}
 main{width:min(1200px,92%);margin:auto;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:28px 0 calc(var(--hh) + 40px)}
 .wm{position:relative;margin-top:34px;font:400 clamp(40px,7vw,84px)/1.15 'Duet Hand',sans-serif;letter-spacing:-.02em;white-space:nowrap}
 .wm img{position:absolute;right:-6%;top:-46%;width:clamp(100px,15vw,170px);pointer-events:none}
-.sub{margin:4px 0 0;font:19px 'Duet Text',sans-serif;letter-spacing:.04em;color:var(--muted);text-align:center}
+.sub{margin:4px 0 0;font:18px 'Duet Hand Bold',sans-serif;letter-spacing:.02em;color:var(--muted);text-align:center}
 .stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;width:100%;padding:22px 0}
 .card{position:relative;isolation:isolate;width:min(92vw,480px);padding:46px 34px 34px;filter:drop-shadow(2px 5px 4px #70532726);transition:transform .45s cubic-bezier(.3,1.3,.5,1),opacity .3s;transform:rotate(-.9deg)}
 .card:before,.note:before{content:'';position:absolute;inset:0;z-index:-1;background:var(--paper);clip-path:polygon(.3% 1%,16% .3%,35% .7%,57% 0,78% .5%,99% .2%,99.6% 17%,99.1% 43%,100% 67%,99.4% 98.5%,81% 99.1%,64% 98.7%,43% 100%,22% 99.2%,.6% 99.7%,0 74%,.5% 55%,0 33%)}
@@ -33,14 +32,14 @@ main{width:min(1200px,92%);margin:auto;min-height:100vh;display:flex;flex-direct
 .cream{--paper:#fff6e5}.rose{--paper:#efd2bd}.sage{--paper:#dce1c6}.blue{--paper:#d9e3e2}
 .card,.note{color:#594739}
 .lb{text-align:center;font:400 24px 'Duet Hand',sans-serif;margin:0 0 22px;letter-spacing:.02em}
-.f{display:block;width:100%;padding:11px 14px;margin:0 0 14px;background:#5947390a;border:1.5px solid #59473966;border-radius:6px 10px 5px 9px;box-shadow:inset 0 2px 3px #5947391c;outline:none;font:26px 'Duet Script','Comic Sans MS',cursive}
+.f{display:block;width:100%;padding:11px 14px;margin:0 0 14px;background:#5947390a;border:1.5px solid #59473966;border-radius:6px 10px 5px 9px;box-shadow:inset 0 2px 3px #5947391c;outline:none;font:22px 'Duet Hand Bold',sans-serif}
 .f:focus{border-color:#594739;background:#fff8}
-.row{display:flex;align-items:center;gap:8px;margin:0 0 14px}.row .f{margin:0;font:19px 'Duet Text',sans-serif;letter-spacing:.03em}.pre2{font:19px 'Duet Text',sans-serif;opacity:.7;white-space:nowrap}
+.row{display:flex;align-items:center;gap:8px;margin:0 0 14px}.row .f{margin:0;font:19px 'Duet Hand Bold',sans-serif;}.pre2{font:19px 'Duet Hand Bold',sans-serif;opacity:.7;white-space:nowrap}
 .dyn{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 8px}
-.dy{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px 10px;border:2px solid #5947394d;border-radius:8px 12px 6px 11px;background:#fff6;cursor:pointer;font:19px 'Duet Text',sans-serif;letter-spacing:.03em}
+.dy{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px 10px;border:2px solid #5947394d;border-radius:8px 12px 6px 11px;background:#fff6;cursor:pointer;font:19px 'Duet Hand Bold',sans-serif;}
 .dy svg{width:38px;height:38px;stroke:#594739;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .dy[aria-pressed=true]{border-color:#594739;background:#fff}
-.pk{display:flex;align-items:center;gap:10px;margin:0 0 12px}.pk>span{flex:1;font:20px 'Duet Text',sans-serif;overflow:hidden;text-overflow:ellipsis}
+.pk{display:flex;align-items:center;gap:10px;margin:0 0 12px}.pk>span{flex:1;font:20px 'Duet Hand Bold',sans-serif;overflow:hidden;text-overflow:ellipsis}
 .an{border:2px solid transparent;border-radius:8px 12px 6px 11px;background:#fff6;width:76px;height:64px;padding:4px;cursor:pointer}.an img{width:100%;height:100%;object-fit:contain}
 .an[aria-pressed=true]{border-color:#594739;background:#fff}
 .ic{display:inline-grid;place-items:center;width:34px;height:34px;flex:none;background:none;border:0;cursor:pointer;padding:0}.ic svg{width:24px;height:24px;stroke:#594739;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -51,44 +50,44 @@ main{width:min(1200px,92%);margin:auto;min-height:100vh;display:flex;flex-direct
 .go,.bk,.cta{cursor:pointer;border:2.3px solid #594739;background:#e8dbb9;color:#594739}
 .go{width:54px;height:46px;border-radius:7px 12px 6px 10px;display:grid;place-items:center}.go svg,.bk svg{width:26px;height:26px;stroke:#594739;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .go[disabled],.cta[disabled]{opacity:.35;cursor:default}.bk{width:42px;height:38px;border-radius:6px 10px 5px 9px;background:transparent;border-color:#5947394d;display:grid;place-items:center}
-.cta{display:inline-block;padding:12px 22px;border-radius:6px 11px 5px 9px;font:600 15px Georgia,serif;letter-spacing:.02em;text-decoration:none}
+.cta{display:inline-block;padding:12px 22px;border-radius:6px 11px 5px 9px;font:17px 'Duet Hand Bold',sans-serif;text-decoration:none}
 .chips{display:flex;gap:12px}.chips button{width:30px;height:38px;border:2px solid #594739;border-radius:3px 6px 3px 5px;background:var(--paper);opacity:.45;cursor:pointer;transition:.25s}
 .chips button.d{opacity:1}.chips button.c{opacity:1;transform:translateY(-5px) scale(1.12)}.chips button:disabled{cursor:default}
-.err{min-height:22px;margin:0 0 4px;text-align:center;font:17px 'Duet Text',sans-serif;color:#a65f4c}
+.err{min-height:22px;margin:0 0 4px;text-align:center;font:17px 'Duet Hand Bold',sans-serif;color:#a65f4c}
 :focus-visible{outline:2.5px solid #66745a;outline-offset:3px}
 .sent{text-align:center}.pair{display:flex;justify-content:center;gap:22px;margin:0 0 6px}.pair figure{margin:0;width:42%}.pair img{width:100%;height:96px;object-fit:contain}
-.pair figcaption{font:21px 'Duet Text',sans-serif;overflow-wrap:anywhere;margin-top:4px}
-.addr{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px 0 6px;font:20px 'Duet Text',sans-serif;overflow-wrap:anywhere}
-.wait{display:flex;align-items:center;justify-content:center;gap:10px;font:21px 'Duet Text',sans-serif;margin:14px 0 4px}.wait svg{width:26px;height:26px;stroke:#594739;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;animation:flip 3.2s ease-in-out infinite}
+.pair figcaption{font:21px 'Duet Hand Bold',sans-serif;overflow-wrap:anywhere;margin-top:4px}
+.addr{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px 0 6px;font:20px 'Duet Hand Bold',sans-serif;overflow-wrap:anywhere}
+.wait{display:flex;align-items:center;justify-content:center;gap:10px;font:21px 'Duet Hand Bold',sans-serif;margin:14px 0 4px}.wait svg{width:26px;height:26px;stroke:#594739;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;animation:flip 3.2s ease-in-out infinite}
 @keyframes flip{0%,40%{transform:rotate(0)}60%,100%{transform:rotate(180deg)}}
 .hold{text-align:center;margin-top:8vh}.hold .pair{margin:18px 0}
 .list{width:min(900px,92vw);display:grid;gap:34px;margin:18px 0 0}
 .note{position:relative;isolation:isolate;padding:30px 26px 22px;filter:drop-shadow(2px 4px 3px #70532722);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center}
-.note img.p{width:54px;height:46px;object-fit:contain}.note .who{font:22px 'Duet Text',sans-serif;overflow-wrap:anywhere}.note .meta{font:16px 'Duet Text',sans-serif;opacity:.7;margin-top:2px;overflow-wrap:anywhere}
-.acts{display:flex;gap:6px}.tag{font:15px 'Duet Text',sans-serif;letter-spacing:.06em;padding:2px 8px;border:1.5px solid #594739;border-radius:4px 8px 3px 7px}
-.empty{font:22px 'Duet Text',sans-serif;opacity:.7;text-align:center;margin-top:30px}
+.note img.p{width:54px;height:46px;object-fit:contain}.note .who{font:22px 'Duet Hand Bold',sans-serif;overflow-wrap:anywhere}.note .meta{font:16px 'Duet Hand Bold',sans-serif;opacity:.7;margin-top:2px;overflow-wrap:anywhere}
+.acts{display:flex;gap:6px}.tag{font:15px 'Duet Hand Bold',sans-serif;padding:2px 8px;border:1.5px solid #594739;border-radius:4px 8px 3px 7px}
+.empty{font:22px 'Duet Hand Bold',sans-serif;opacity:.7;text-align:center;margin-top:30px}
 @media(max-width:720px){.card{padding:44px 24px 28px}.wm img{right:-4%;top:-60%}.note{grid-template-columns:auto 1fr}.acts{grid-column:1/-1;justify-content:flex-end}}
 @media(prefers-reduced-motion:reduce){.cl{animation:none}*{transition:none!important;animation:none!important}}
-.so{width:auto;padding:6px 16px;font:17px 'Duet Text',sans-serif;color:var(--ink);border-color:currentColor}
+.so{width:auto;padding:6px 16px;font:17px 'Duet Hand Bold',sans-serif;color:var(--ink);border-color:currentColor}
 .tags{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:0 0 6px}
 .tg{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
 .pt{position:relative;width:100%;max-width:150px;height:104px;border:2px dashed #5947394d;border-radius:8px 12px 6px 11px;background:#fff6;cursor:pointer;padding:4px}
 .pt img{width:100%;height:100%;object-fit:contain}.pt:hover{border-color:#594739}
 .sw{position:absolute;right:5px;bottom:5px;width:26px;height:26px;border-radius:50%;background:#e8dbb9;border:1.5px solid #594739;display:grid;place-items:center}.sw svg{width:16px;height:16px;stroke:#594739;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.nm{font-size:24px;text-align:center;margin:0}
-.hint{min-height:24px;margin:2px 0 4px;text-align:center;font:17px 'Duet Text',sans-serif;color:var(--muted-card,#85745f)}.hint.bad{color:#a65f4c}.hint.good{color:#66745a}
+.nm{font-size:21px;text-align:center;margin:0}
+.hint{min-height:24px;margin:2px 0 4px;text-align:center;font:16px 'Duet Hand Bold',sans-serif;color:var(--muted-card,#85745f)}.hint.bad{color:#a65f4c}.hint.good{color:#66745a}
 .sug{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:36px;margin:0 0 4px}
-.chip{padding:5px 12px;border:1.8px solid #594739;border-radius:5px 10px 4px 9px;background:#fff8;cursor:pointer;font:17px 'Duet Text',sans-serif;letter-spacing:.02em;color:#594739}.chip:hover{background:#fff}
+.chip{padding:5px 12px;border:1.8px solid #594739;border-radius:5px 10px 4px 9px;background:#fff8;cursor:pointer;font:16px 'Duet Hand Bold',sans-serif;color:#594739}.chip:hover{background:#fff}
 .acts2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
-.lnk{background:none;border:0;cursor:pointer;color:#594739;font:17px 'Duet Text',sans-serif;text-decoration:underline;text-underline-offset:3px;padding:6px}
+.lnk{background:none;border:0;cursor:pointer;color:#594739;font:17px 'Duet Hand Bold',sans-serif;text-decoration:underline;text-underline-offset:3px;padding:6px}
 .card .row .ic+.ic{margin-left:-4px}
-#pw{font-size:15px;letter-spacing:0}
+#pw{font-size:17px}
 body[data-time=evening]{--pb:1.15}body[data-time=night]{--pb:1.9}
 .hills .pet{position:absolute;left:12%;bottom:48%;width:clamp(96px,15vw,170px);filter:brightness(var(--pb,1))}
 html[data-read=no] .stage,html[data-read=no] .snd{display:none}html[data-read=yes] #about{display:none}
 .about{margin:26px 0 0;width:min(94vw,560px);padding:48px 34px 34px;text-align:left}.about .lb{margin-bottom:12px}
-.about h2{margin:20px 0 4px;font:400 19px 'Duet Hand',sans-serif;letter-spacing:.04em}.about p,.about li{font:16.5px/1.55 Georgia,'Times New Roman',serif;margin:0 0 6px}
-.about ol,.about ul{margin:0 0 4px;padding-left:22px}.about b{font-weight:600}
+.about h2{margin:20px 0 4px;font:400 19px 'Duet Hand Bold',sans-serif;letter-spacing:.04em}.about p,.about li{font:16px/1.6 'Duet Hand Bold',sans-serif;margin:0 0 6px}
+.about ol,.about ul{margin:0 0 4px;padding-left:22px}.about b{font-weight:400;border-bottom:2px solid #66745a}
 .pledge{margin:22px 0 4px!important;padding:12px 16px;border-left:4px solid #66745a;background:#ffffff80;border-radius:2px 8px 8px 2px}
 .about .nav{margin-top:24px}.about .cta{font-size:17px;padding:14px 26px}
 .snd{position:fixed;right:14px;bottom:14px;z-index:6;width:46px;height:46px;border-radius:50%;border:2px solid #594739;background:#e8dbb9;cursor:pointer;display:grid;place-items:center;padding:0}

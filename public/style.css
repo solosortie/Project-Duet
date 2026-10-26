@@ -291,3 +291,6 @@ body[data-streak=broken] #streak:before{opacity:0}body[data-streak=broken] #stre
 @media(prefers-reduced-motion:reduce){#streak-scene:before,#streak-scene span{animation:none}.streak-contributions i{transition:none}}
 /* Rooms: hide the page until the room's names and animals are known (see room.js). */
 .room-wait body{visibility:hidden}
+/* Drawing stays smooth: behind an open dialog the page holds still, and the editor is not blurred. */
+#editor::backdrop{backdrop-filter:none;background:#493d2c80}
+html:has(dialog[open]) .walls-bg *,html:has(dialog[open]) .entry-backdrop *{animation-play-state:paused!important}

@@ -46,7 +46,21 @@ async function recentDays(env, session) {
 async function handleGet(url, session, env) {
   const rid = session.room_id;
   if (url.pathname === '/api/session') return reply(200, { person: session.person });
-  if (url.pathname === '/api/state') return reply(200, streakState(await recentDays(env, session), Date.now(), tzOffsetSeconds(session.tz), session.tz));
+  if (url.pathname === '/api/state') {
+    const off = tzOffsetSeconds(session.tz), now = Date.now(), today = Math.floor((now / 1000 + off) / 86400);
+    const last = await env.DB.prepare('SELECT max(id) m FROM notes WHERE room_id=?').bind(rid).first();   // read first: a note landing mid-way only causes one extra recompute
+    const lastId = (last && last.m) || 0;
+    // The cache is an optimisation only: if its table is missing (migration not applied yet) the answer is still computed.
+    const hit = await env.DB.prepare('SELECT note_id, day, streaks FROM room_state WHERE room_id=?').bind(rid).first().catch(() => null);
+    let body;
+    if (hit && hit.note_id === lastId && hit.day === today) body = hit.streaks;
+    else {
+      const { now: _now, ...state } = streakState(await recentDays(env, session), now, off, session.tz);
+      body = JSON.stringify(state);
+      await env.DB.prepare('INSERT OR REPLACE INTO room_state(room_id,note_id,day,streaks) VALUES(?,?,?,?)').bind(rid, lastId, today, body).run().catch(() => {});
+    }
+    return reply(200, `{"now":${now},${body.slice(1)}`);
+  }
   if (url.pathname.startsWith('/api/drawing/')) {
     const bits = url.pathname.split('/');
     if (bits.length !== 5 || !/^\d+$/.test(bits[4])) return reply(400, { error: 'Invalid segment.' });

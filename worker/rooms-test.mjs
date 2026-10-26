@@ -47,19 +47,23 @@ test('setup: clear limits, sign in as owner', async () => {
 
 test('addresses: shape, reserved words and availability', async () => {
   const c = new Client();
-  for (const s of ['dev', 'api', 'home', 'ab', 'a--b', '-ab', 'UPPER space', 'x'.repeat(30)]) assert.equal((await c.req(`/api/slug?slug=${encodeURIComponent(s)}`)).json.ok, false, s);
+  for (const s of ['dev', 'api', 'home', 'a--b', '-ab', 'ab-', 'UPPER space', 'x'.repeat(25), '']) assert.equal((await c.req(`/api/slug?slug=${encodeURIComponent(s)}`)).json.ok, false, s);
   assert.equal((await c.req(`/api/slug?slug=${A}`)).json.ok, true);
+  for (const s of ['q', 'ab', 'x'.repeat(24)]) assert.notEqual((await c.req(`/api/slug?slug=${s}`)).json.reason, 'invalid', `${s} has a valid shape`);
 });
 
 test('creation is validated and starts pending', async () => {
   const c = new Client(null, '203.0.113.10');
-  const bad = [{ names: ['Mira', 'mira'] }, { names: ['<b>x</b>', 'Jo'] }, { animals: ['cat', 'dragon'] }, { dynamic: 'rivals' }, { passphrase: 'short' }, { passphrase: 'seven77' }, { slug: 'dev' }, { names: ['', 'Jo'] }];
+  const bad = [{ names: ['Mira', 'mira'] }, { names: ['<b>x</b>', 'Jo'] }, { animals: ['cat', 'dragon'] }, { dynamic: 'rivals' }, { passphrase: 'ab' }, { passphrase: '' }, { slug: 'dev' }, { names: ['', 'Jo'] }];
   for (const o of bad) assert.equal((await c.req('/api/rooms', make(`zz-${RUN}`, o))).status, 400, JSON.stringify(o));
   const r = await c.req('/api/rooms', make(A));
   assert.equal(r.status, 201); assert.equal(r.json.status, 'pending');
   const again = await c.req('/api/rooms', make(A));
   assert.equal(again.status, 200, 'the same request sent twice returns the pending room'); assert.equal(again.json.repeat, true);
   assert.equal((await c.req('/api/rooms', make(A, { passphrase: 'a different one' }))).status, 409, 'a different request for the same address is refused');
+  const tiny = await c.req('/api/rooms', make(`t${RUN.slice(-2)}`, { passphrase: 'abc' }));
+  assert.equal(tiny.status, 201, 'a 3-character passphrase and a short address are accepted');
+  await admin.req('/api/admin/delete', { slug: `t${RUN.slice(-2)}`, confirm: `t${RUN.slice(-2)}` });
   const nodyn = make(`nd-${RUN}`); delete nodyn.dynamic; assert.equal((await c.req('/api/rooms', nodyn)).status, 201, 'dynamic is optional');
   await admin.req('/api/admin/delete', { slug: `nd-${RUN}`, confirm: `nd-${RUN}` });
   assert.equal((await c.req(`/api/slug?slug=${A}`)).json.ok, false);
@@ -145,6 +149,33 @@ test('streaks follow the room time zone', async () => {
   const a = await enter(A, 'aryan');
   const st = (await a.req('/api/state')).json;
   assert.equal(st.streaks.aryan.today, true); assert.ok(st.streaks.aryan.count >= 1);
+});
+
+test('streak lookups are cached, and refresh the moment a note is posted', async () => {
+  const C = `cache-${RUN}`;
+  assert.equal((await new Client(null, '203.0.113.41').req('/api/rooms', make(C))).status, 201); await approve(C);
+  const a = await enter(C, 'aryan');
+  const before = (await a.req('/api/state')).json;
+  assert.equal(before.streaks.aryan.today, false);
+  const again = (await a.req('/api/state')).json;
+  assert.deepEqual({ ...again, now: 0 }, { ...before, now: 0 }, 'a repeat lookup returns the same answer');
+  assert.ok(again.now >= before.now, 'the clock in the answer is always fresh');
+  assert.equal((await a.req('/api/notes', note())).status, 201);
+  const after = (await a.req('/api/state')).json;
+  assert.equal(after.streaks.aryan.today, true, 'a new note is reflected straight away');
+  assert.equal(after.shared.contributions.aryan, true);
+  assert.equal((await admin.req('/api/admin/delete', { slug: C, confirm: C })).status, 200);
+});
+
+test('streaks still work if the cache table is missing (deploy before migration)', async () => {
+  const a = await enter('home', 'aryan', '229');
+  d1('DROP TABLE room_state');
+  try {
+    const r = await a.req('/api/state');
+    assert.equal(r.status, 200); assert.ok(r.json.streaks && r.json.shared, 'the streak answer is still produced');
+  } finally {
+    d1('CREATE TABLE IF NOT EXISTS room_state(room_id INTEGER PRIMARY KEY, note_id INTEGER NOT NULL, day INTEGER NOT NULL, streaks TEXT NOT NULL)');
+  }
 });
 
 test('declined rooms are closed; deleting removes everything', async () => {
