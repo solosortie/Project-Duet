@@ -6,7 +6,22 @@
  const blend=(a,b,t)=>'#'+[1,3,5].map(i=>Math.round(parseInt(a.slice(i,i+2),16)*(1-t)+parseInt(b.slice(i,i+2),16)*t).toString(16).padStart(2,'0')).join('');
  const stops=[[0,'#293548','#394348'],[5,'#41495a','#777367'],[7,'#f1d8ba','#e6ddbd'],[10,'#c8deea','#e6ecda'],[16,'#cededc','#e8dfc4'],[18,'#c99279','#b0a08a'],[20,'#293548','#394348'],[24,'#293548','#394348']];
  function paint(){const time=now(),date=new Date(time+19800000),h=date.getUTCHours()+date.getUTCMinutes()/60;const phase=h>=5&&h<9?'morning':h>=9&&h<17?'day':h>=17&&h<20?'evening':'night';document.body.dataset.time=phase;
-  const i=stops.findIndex((s,index)=>index<stops.length-1&&h>=s[0]&&h<stops[index+1][0]),a=stops[Math.max(i,0)],b=stops[Math.max(i,0)+1],t=(h-a[0])/(b[0]-a[0]);document.body.style.setProperty('--sky1',blend(a[1],b[1],t));document.body.style.setProperty('--sky2',blend(a[2],b[2],t));
+  const i=stops.findIndex((s,index)=>index<stops.length-1&&h>=s[0]&&h<stops[index+1][0]),a=stops[Math.max(i,0)],b=stops[Math.max(i,0)+1],t=(h-a[0])/(b[0]-a[0]);
+  const sky1=blend(a[1],b[1],t),sky2=blend(a[2],b[2],t);
+  document.body.style.setProperty('--sky1',sky1);document.body.style.setProperty('--sky2',sky2);
+  /* Chrome ink from sky luminance. Flip early (~18:15 / ~06:20) so evening text stays readable. */
+  const lum=c=>{const r=parseInt(c.slice(1,3),16)/255,g=parseInt(c.slice(3,5),16)/255,bl=parseInt(c.slice(5,7),16)/255;return 0.2126*r+0.7152*g+0.0722*bl};
+  const L=(lum(sky1)+lum(sky2))/2;
+  /* Hard preference: light chrome below 0.58, dark above 0.62; short blend only in between. */
+  let u=0;if(L<=0.58)u=1;else if(L>=0.62)u=0;else u=(0.62-L)/(0.62-0.58);
+  /* Ease toward poles so mid-mix never sits at 50% muddy brown. */
+  u=u*u*(3-2*u);if(u>0.5)u=Math.max(u,0.85);else if(u>0)u=Math.min(u,0.15);
+  const mix=(x,y,tt)=>'#'+[1,3,5].map(i=>Math.round(parseInt(x.slice(i,i+2),16)*(1-tt)+parseInt(y.slice(i,i+2),16)*tt).toString(16).padStart(2,'0')).join('');
+  const darkInk='#594739',lightInk='#f3e6d0',darkMuted='#85745f',lightMuted='#cfc3b0';
+  document.body.style.setProperty('--wb-ink',mix(darkInk,lightInk,u));
+  document.body.style.setProperty('--wb-muted',mix(darkMuted,lightMuted,u));
+  document.body.dataset.chrome=u>=0.5?'light':'dark';
+
   $('#hour-hand').setAttribute('transform','rotate('+((h%12)*30)+' 40 40)');$('#minute-hand').setAttribute('transform','rotate('+(date.getUTCMinutes()*6)+' 40 40)');
   $('#clock-date').textContent=new Intl.DateTimeFormat('en',{timeZone:zone,day:'numeric',month:'short'}).format(time);$('#clock-date').dateTime=new Date(time).toISOString();$('#clock-face').setAttribute('aria-label',new Intl.DateTimeFormat('en',{timeZone:zone,hour:'numeric',minute:'2-digit'}).format(time)+' · Kolkata');
   const day=Math.floor((time+19800000)/86400000);if(lastDay!==null&&day!==lastDay&&!window.DuetDev){lastDay=day;state=null;refresh()}lastDay=day;paintStreak();

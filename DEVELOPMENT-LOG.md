@@ -117,3 +117,9 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - Streak lookup no longer fails when its cache table is missing (deploy before migration is safe).
 - Drawing speed: finished strokes live on a cached layer and only the stroke in progress is redrawn once per frame; the page behind an open dialog stops animating and the editor backdrop is no longer blurred. Measured pointer latency fell from 103-156 ms to 7-11 ms per event (35 ms instead of 307 ms on a 4x slower CPU).
 - Wall notes are cropped from their stroke bounds (no full-canvas pixel read-back) and painted when they near the screen; building a card went from 12 ms to 3.5 ms. Note dates use the room's time zone.
+
+## One editor: drawing and text on the same page
+- The separate written-note editor and the two-choice dialog are gone. "Add a note" opens one editor with Pencil, Ink, Marker, Text and Eraser. Text items sit on the page like strokes (`tool:'text'`, one anchor point, box width/height, one of four sizes, ink colour, up to 500 characters); they can be edited, moved, resized, deleted and undone.
+- Validation (`worker/validate.js`), chunk storage (`worker/drawing-api.js`, `public/drawing-store.js`), the wall renderer, previews and exports all understand text items. Written notes made earlier keep displaying; an unsent written draft becomes a text item on the page.
+- Layout: tool rail on the left, undo/redo directly above the page, Preview and Stick at the bottom (Stick is the primary action, bottom right); on phones the page comes first with the tools under it and the actions pinned to the bottom. Every control is at least 44 px. Shortcuts: P I M T E, Ctrl/Cmd+Z, Shift+Ctrl/Cmd+Z, Ctrl/Cmd+Enter or Esc to finish text.
+- The Python server does not accept text items (it is local-only); use the Worker.

@@ -67,7 +67,7 @@ async function exportNotes(){
   for(let i=0;i<list.length;i++){
     const n=list[i];let image=null;
     if(n.format!==3){say('Rendering drawings… '+(i+1)+' of '+list.length);const png=await notePng(n);if(png){image='images/note-'+String(n.id).padStart(5,'0')+'.png';files.push({name:image,data:png})}}
-    records.push({id:n.id,author:n.author,recipient:n.recipient,created:n.created,created_iso:new Date(n.created*1000).toISOString(),kind:kindOf(n),format:n.format,paper:n.paper,text_size:n.text_size,text:n.text||'',nonce:n.nonce,image,strokes:n.drawing||[]});
+    records.push({id:n.id,author:n.author,recipient:n.recipient,created:n.created,created_iso:new Date(n.created*1000).toISOString(),kind:kindOf(n),format:n.format,paper:n.paper,text_size:n.text_size,text:n.text||(Array.isArray(n.drawing)?n.drawing.filter(s=>s.tool==='text').map(s=>s.text).join('\n'):''),nonce:n.nonce,image,strokes:n.drawing||[]});
   }
   const exportedAt=new Date().toISOString();
   const json={app:'Project Duet',exported_at:exportedAt,exported_by:person,walls:walls(),note_count:records.length,notes:records};

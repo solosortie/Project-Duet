@@ -127,7 +127,16 @@ class Routes:
                 valid=valid and len(text.split())<=200 and not drawing and bool(text.strip())
             if valid:
                 for stroke in drawing:
-                    if not isinstance(stroke,dict) or stroke.get('color') not in ('#594739','#a65f4c','#66745a','#bc8b3d','#728b98','erase') or type(stroke.get('width')) is not int or not 1<=stroke['width']<=28 or stroke.get('tool','ink') not in ('pencil','ink','marker','erase') or not isinstance(stroke.get('points'),list) or not 1<=len(stroke['points'])<=4000: valid=False; break
+                    if not isinstance(stroke,dict): valid=False; break
+                    tool=stroke.get('tool','ink')
+                    if tool=='text':
+                        if stroke.get('color') not in ('#594739','#a65f4c','#66745a','#bc8b3d','#728b98') or not isinstance(stroke.get('text'),str) or not isinstance(stroke.get('points'),list) or len(stroke.get('points') or [])!=1: valid=False; break
+                        continue
+                    if stroke.get('color') not in ('#594739','#a65f4c','#66745a','#bc8b3d','#728b98','erase'): valid=False; break
+                    if tool=='erase':
+                        if type(stroke.get('width')) is not int or not 8<=stroke['width']<=100: valid=False; break
+                    elif type(stroke.get('width')) is not int or not 1<=stroke['width']<=28: valid=False; break
+                    if tool not in ('pencil','ink','marker','erase') or not isinstance(stroke.get('points'),list) or not 1<=len(stroke['points'])<=4000: valid=False; break
                     for point in stroke['points']:
                         if not isinstance(point,list) or len(point) not in (2,3) or not all(type(v) in (int,float) and 0<=v<=1000 for v in point[:2]) or (len(point)==3 and (type(point[2]) not in (int,float) or not 0<=point[2]<=1)): valid=False; break
             if not valid or (not text.strip() and not drawing): return self.send(400,{'error':'Add a little writing or a drawing.'})

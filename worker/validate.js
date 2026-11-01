@@ -1,6 +1,8 @@
 // Note validation, a faithful port of the rules in server.py. Pure functions: no I/O.
 const COLORS = new Set(['#594739', '#a65f4c', '#66745a', '#bc8b3d', '#728b98', 'erase']);
-const TOOLS = new Set(['pencil', 'ink', 'marker', 'erase']);
+const TOOLS = new Set(['pencil', 'ink', 'marker', 'erase', 'text']);
+const TEXT_SIZES = new Set([28, 40, 56, 80]);
+const TEXT_BAD = /[\u0000-\u0009\u000b-\u001f\u007f]/;   // newlines are fine, other control characters are not
 const PAPERS = new Set(['cream', 'rose', 'sage', 'blue']);
 const FORMATS = new Set([1, 2, 3]);
 const SIZES = new Set([32, 40, 52]);
@@ -13,8 +15,20 @@ function validDrawing(drawing) {
     const s = drawing[i];
     if (s === null || typeof s !== 'object' || Array.isArray(s)) return false;
     if (!COLORS.has(s.color)) return false;
-    if (!isInt(s.width) || s.width < 1 || s.width > 28) return false;
-    if (!TOOLS.has('tool' in s ? s.tool : 'ink')) return false;
+    const tool = 'tool' in s ? s.tool : 'ink';
+    if (!TOOLS.has(tool)) return false;
+    if (tool === 'erase') {
+      if (!isInt(s.width) || s.width < 8 || s.width > 100) return false;
+    } else if (tool !== 'text') {
+      if (!isInt(s.width) || s.width < 1 || s.width > 28) return false;
+    } else if (!isInt(s.width) || s.width < 1 || s.width > 28) {
+      return false;
+    }
+    if (tool === 'text') {   // text placed on the page: one anchor point, a box width and height, and the words
+      if (s.color === 'erase' || typeof s.text !== 'string' || !s.text.trim() || [...s.text].length > 500 || TEXT_BAD.test(s.text)) return false;
+      if (!TEXT_SIZES.has(s.size) || !isInt(s.w) || s.w < 100 || s.w > 1000 || !isInt(s.h) || s.h < 1 || s.h > 720) return false;
+      if (!Array.isArray(s.points) || s.points.length !== 1) return false;
+    }
     const pts = s.points;
     if (!Array.isArray(pts) || pts.length < 1 || pts.length > 4000) return false;
     for (let j = 0; j < pts.length; j++) {

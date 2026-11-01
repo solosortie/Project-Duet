@@ -19,7 +19,15 @@ def streaks(rows,now):
 def packed_valid(items):
     if not isinstance(items,list) or not 1<=len(items)<=40:return False
     for s in items:
-        if not isinstance(s,dict) or s.get('tool') not in ('pencil','ink','marker','erase') or s.get('color') not in COLORS or type(s.get('width')) is not int or not 1<=s['width']<=28:return False
+        if not isinstance(s,dict) or s.get('tool') not in ('pencil','ink','marker','erase','text') or s.get('color') not in COLORS:return False
+        tool=s.get('tool')
+        if tool=='erase':
+            if type(s.get('width')) is not int or not 8<=s['width']<=100:return False
+        elif tool!='text' and (type(s.get('width')) is not int or not 1<=s['width']<=28):return False
+        if tool=='text':
+            pts=s.get('points')
+            if not isinstance(s.get('text'),str) or not isinstance(pts,list):return False
+            continue
         stride=s.get('stride');pts=s.get('points')
         if type(stride) is not int or stride not in (2,3) or not isinstance(pts,list) or not stride<=len(pts)<=4000*stride or len(pts)%stride:return False
         for i,v in enumerate(pts):

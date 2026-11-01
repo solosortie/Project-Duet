@@ -214,3 +214,29 @@ test('streaks: a run longer than the first query window is counted in full', asy
   d1("DELETE FROM notes WHERE nonce LIKE 'streak-%'");
   assert.equal(st.chat.count, 60); assert.equal(st.chat.today, true);
 });
+
+const textItem = (o = {}) => ({ tool: 'text', color: '#594739', width: 1, size: 40, w: 560, h: 112, text: 'good morning', points: [[80, 90]], ...o });
+
+test('text placed on the canvas: saved directly and in chunks, and bad text is refused', async () => {
+  const a = await login('aryan');
+  const ok = note({ format: 2, text: '', drawing: [stroke(), textItem(), textItem({ size: 80, w: 300, h: 240, text: 'two\nlines', points: [[600, 300]] })] });
+  const r = await a.req('/api/notes', ok);
+  assert.equal(r.status, 201); assert.deepEqual(r.json.note.drawing, ok.drawing, 'text survives a round trip');
+  for (const bad of [{ size: 33 }, { text: '' }, { text: '   ' }, { w: 99 }, { w: 1001 }, { h: 0 }, { h: 721 }, { color: 'erase' }, { text: 'a\u0007b' }, { text: 'x'.repeat(501) }, { points: [[1, 1], [2, 2]] }, { w: 560.5 }]) {
+    assert.equal((await a.req('/api/notes', note({ format: 2, text: '', drawing: [textItem(bad)] }))).status, 400, JSON.stringify(bad));
+  }
+  assert.equal((await a.req('/api/notes', note({ format: 2, text: '', drawing: [textItem({ text: 'x'.repeat(500) })] }))).status, 201, '500 characters is the limit');
+  // chunked upload (how the app saves every canvas)
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, '0')).join(''), nonce = `txt-${RUN}-chunk0001`;
+  assert.equal((await a.req('/api/uploads', { upload: id, author: 'aryan', nonce, paper: 'cream', text_size: 40, total: 1 })).status, 200);
+  const packed = [{ tool: 'ink', color: '#594739', width: 4, stride: 2, points: [10, 10, 20, 20] }, { tool: 'text', color: '#a65f4c', width: 1, size: 56, w: 400, h: 160, text: 'saved in a chunk', stride: 2, points: [120, 200] }];
+  assert.equal((await a.req('/api/uploads/chunk', { upload: id, author: 'aryan', part: 0, drawing: packed })).status, 200);
+  const badChunk = packed.map((s) => (s.tool === 'text' ? { ...s, size: 31 } : s));
+  assert.equal((await a.req('/api/uploads/chunk', { upload: id, author: 'aryan', part: 0, drawing: badChunk })).status, 400, 'a chunk with a bad text size is refused');
+  const done = await a.req('/api/uploads/commit', { upload: id, author: 'aryan' });
+  assert.equal(done.status, 201);
+  const back = await a.req(`/api/drawing/${id}/0`);
+  assert.equal(back.status, 200);
+  const items = back.json.drawing;
+  assert.equal(items[1].tool, 'text'); assert.equal(items[1].text, 'saved in a chunk'); assert.equal(items[1].size, 56); assert.deepEqual(items[1].points, [120, 200], 'chunks are stored packed; the app unpacks them');
+});

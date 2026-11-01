@@ -1,7 +1,7 @@
 /* Lossless vector chunks. Packed points keep their original precision. */
 const DrawingStore=(()=>{
- const pack=stroke=>{const pressure=stroke.points.some(p=>p.length===3);return {tool:stroke.tool||'ink',color:stroke.color,width:stroke.width,stride:pressure?3:2,points:stroke.points.flatMap(p=>pressure?[p[0],p[1],p.length===3?p[2]:null]:p)}};
- function unpack(s){const points=[];for(let i=0;i<s.points.length;i+=s.stride){const p=[s.points[i],s.points[i+1]];if(s.stride===3&&s.points[i+2]!==null)p.push(s.points[i+2]);points.push(p)}return {tool:s.tool,color:s.color,width:s.width,points}}
+ const pack=stroke=>{if(stroke.tool==='text')return {tool:'text',color:stroke.color,width:stroke.width||1,size:stroke.size,w:stroke.w,h:stroke.h,text:stroke.text,stride:2,points:[stroke.points[0][0],stroke.points[0][1]]};const pressure=stroke.points.some(p=>p.length===3);return {tool:stroke.tool||'ink',color:stroke.color,width:stroke.width,stride:pressure?3:2,points:stroke.points.flatMap(p=>pressure?[p[0],p[1],p.length===3?p[2]:null]:p)}};
+ function unpack(s){const points=[];for(let i=0;i<s.points.length;i+=s.stride){const p=[s.points[i],s.points[i+1]];if(s.stride===3&&s.points[i+2]!==null)p.push(s.points[i+2]);points.push(p)}return s.tool==='text'?{tool:'text',color:s.color,width:s.width,size:s.size,w:s.w,h:s.h,text:s.text,points}:{tool:s.tool,color:s.color,width:s.width,points}}
  async function save(payload,request,onProgress){
   if(payload.format!==2||!payload.drawing.length)return request('notes',payload);
   const chunks=[];let group=[],size=2;for(const s of payload.drawing){const packed=pack(s),bytes=JSON.stringify(packed).length;if(group.length&&(size+bytes>80000||group.length>=40)){chunks.push(group);group=[];size=2}group.push(packed);size+=bytes+1}if(group.length)chunks.push(group);
