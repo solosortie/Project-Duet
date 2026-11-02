@@ -79,11 +79,43 @@ function compose(target,n,includeText=true){drawStrokes(target,n.drawing);if(!n.
 function composition(){return {author:person,text:'',drawing:drawingForSave(),paper,nonce,format:2,text_size:40}}
 // Live canvas: finished strokes sit on a cached layer, so a pointer move redraws only the stroke in progress (once per frame).
 let baseCanvas=null,baseDirty=true,frame=0,rect=null;
-const liveCtx=canvas.getContext('2d',{desynchronized:true});
+const liveCtx=canvas.getContext('2d',{
+  alpha:true,
+  /* desynchronized causes an opaque black surface on many phones (Safari/Chrome). */
+  desynchronized:false
+});
+if(liveCtx){liveCtx.imageSmoothingEnabled=true}
+
 function measure(){rect=canvas.getBoundingClientRect()}
-function rebuildBase(){if(!baseCanvas){baseCanvas=document.createElement('canvas');baseCanvas.width=canvas.width;baseCanvas.height=canvas.height}drawStrokes(baseCanvas,hiddenIndex>=0?strokes.filter((_,i)=>i!==hiddenIndex):strokes);baseDirty=false}
+function paperFill(c,w,h){
+  const map={cream:'#fff6e5',rose:'#efd2bd',sage:'#dce1c6',blue:'#d9e3e2'};
+  c.save();c.globalCompositeOperation='source-over';c.globalAlpha=1;
+  c.fillStyle=map[paper]||map.cream;c.fillRect(0,0,w,h);c.restore();
+}
+function rebuildBase(){
+  if(!baseCanvas){baseCanvas=document.createElement('canvas');baseCanvas.width=canvas.width;baseCanvas.height=canvas.height}
+  const bc=baseCanvas.getContext('2d');
+  bc.setTransform(1,0,0,1,0,0);
+  bc.clearRect(0,0,baseCanvas.width,baseCanvas.height);
+  paperFill(bc,baseCanvas.width,baseCanvas.height);
+  const list=hiddenIndex>=0?strokes.filter((_,i)=>i!==hiddenIndex):strokes;
+  for(const s of list)drawStroke(bc,s);
+  baseDirty=false;
+}
+
 function commitStroke(s){if(!baseDirty)drawStroke(baseCanvas.getContext('2d'),s)}
-function paintLive(){cancelAnimationFrame(frame);frame=0;liveCtx.clearRect(0,0,canvas.width,canvas.height);if(baseDirty)rebuildBase();liveCtx.drawImage(baseCanvas,0,0);if(active)drawStroke(liveCtx,active)}
+function paintLive(){
+  cancelAnimationFrame(frame);frame=0;
+  if(!liveCtx)return;
+  liveCtx.setTransform(1,0,0,1,0,0);
+  liveCtx.globalAlpha=1;liveCtx.globalCompositeOperation='source-over';
+  liveCtx.clearRect(0,0,canvas.width,canvas.height);
+  if(baseDirty)rebuildBase();
+  if(baseCanvas)liveCtx.drawImage(baseCanvas,0,0);
+  else paperFill(liveCtx,canvas.width,canvas.height);
+  if(active)drawStroke(liveCtx,active);
+}
+
 function schedulePaint(){if(!frame)frame=requestAnimationFrame(paintLive)}
 function history(){$('#undo').disabled=posting||!undoStack.length;$('#redo').disabled=posting||!redoStack.length}
 function repaint(){baseDirty=true;paintLive();history()}
@@ -172,7 +204,7 @@ function noteDraftKey(){return draftKey().replace(/-canvas$/,'-note')}
 async function flushDraft(){clearTimeout(draftTimer);if(!person||!$('#editor').open||posting)return;const key=draftKey(),savedNonce=nonce,comp=composition(),value={...comp,strokes:comp.drawing,mode:'canvas',tool,color,size:Number($('#pen-size').value),tsize:textSize};try{await Drafts.set(key,value);if(nonce===savedNonce&&!posting)$('#draft-status').textContent='Draft saved on this device'}catch{if(nonce===savedNonce)$('#draft-status').textContent='Draft storage unavailable — keep this tab open'}}
 function saveDraft(){if(posting)return;clearTimeout(draftTimer);draftTimer=setTimeout(flushDraft,450)}
 window.addEventListener('pagehide',flushDraft);window.addEventListener('beforeunload',flushDraft);
-function selectPaper(value){paper=value;$('#editor-paper').className='editor-paper '+paper;$$('[data-paper]').forEach(b=>{b.classList.toggle('selected',b.dataset.paper===paper);b.setAttribute('aria-pressed',String(b.dataset.paper===paper))})}
+function selectPaper(value){paper=value;$('#editor-paper').className='editor-paper '+paper;$$('[data-paper]').forEach(b=>{b.classList.toggle('selected',b.dataset.paper===paper);b.setAttribute('aria-pressed',String(b.dataset.paper===paper))});if($('#editor').open)repaint()}
 function selectColor(value,quiet){color=value;$('#editor').style.setProperty('--active-ink',color);$$('[data-color]').forEach(b=>{b.classList.toggle('selected',b.dataset.color===color);b.setAttribute('aria-pressed',String(b.dataset.color===color))});strokeSample();if(textSel&&!quiet){textSel.item.color=value;placeTextBox()}}
 function strokeSample(){
   const v=currentWidth();
@@ -215,7 +247,7 @@ async function openEditor(){await document.fonts.load('40px "Duet Script"');cons
   const old=await Drafts.get(noteDraftKey(),store.get(noteDraftKey(),null)).catch(()=>null);
   if(old&&(old.text||'').trim()&&strokes.length<500){const size={32:28,40:40,52:56}[old.text_size]||40;strokes.push(finalizeText({tool:'text',color:'#594739',size,w:880,text:old.text,points:[[60,60]]}));if(!draft.paper&&old.paper)paperPick=old.paper;await Drafts.remove(noteDraftKey()).catch(()=>{});store.remove(noteDraftKey())}
   undoStack=strokes.map(()=>({k:'add'}));redoStack=[];textSize=draft.tsize||40;setTextSize(textSize,true);$('#pen-size').value=draft.size||4;if(draft.tool&&draft.tool!=='text')toolSizes[draft.tool]=Number(draft.size)||toolSizes[draft.tool]||4;selectPaper(paperPick);selectColor(draft.color||'#594739',true);
-  $('#editor-title').textContent='On '+titleName(person==='aryan'?'chat':'aryan')+'’s wall';$('#post-error').textContent='';$('#editor').showModal();preview(false);setTool(['pencil','ink','marker','text','erase'].includes(draft.tool)?draft.tool:'pencil');flushDraft()}
+  $('#editor-title').textContent='On '+titleName(person==='aryan'?'chat':'aryan')+'’s wall';$('#post-error').textContent='';$('#editor').showModal();preview(false);baseDirty=true;baseCanvas=null;paintLive();setTool(['pencil','ink','marker','text','erase'].includes(draft.tool)?draft.tool:'pencil');flushDraft()}
 $('#compose').onclick=()=>openEditor();
 $('#close-editor').onclick=()=>{flushDraft();$('#editor').close()};
 $('#editor').addEventListener('cancel',e=>{if(posting)e.preventDefault();else if(textSel){e.preventDefault();commitText()}else flushDraft()});

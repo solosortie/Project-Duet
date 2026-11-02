@@ -741,7 +741,7 @@ html:has(dialog[open]) .walls-bg *,html:has(dialog[open]) .entry-backdrop *{anim
 .ed-history .icon-button{width:44px;height:44px}
 .ed-stage{position:relative}
 .editor-paper{line-height:0;background:var(--paper-color,#fff6e5);border:1px solid #cdb68e;border-radius:3px;box-shadow:0 8px 22px #5947392e}
-#drawing{display:block;width:100%;height:auto;aspect-ratio:1000/720;touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none}
+#drawing{display:block;width:100%;height:auto;aspect-ratio:1000/720;touch-action:none;cursor:crosshair;-webkit-user-select:none;user-select:none;background:transparent;color-scheme:only light;-webkit-tap-highlight-color:transparent}
 #drawing.texting{cursor:text}#drawing.erasing{cursor:none}
 .ed-textbox{position:absolute;z-index:3;outline:2px dashed var(--active-ink,#594739);outline-offset:4px}
 .ed-textbox textarea{display:block;width:100%;margin:0;padding:0;border:0;background:transparent;resize:none;overflow:hidden;font-family:'Duet Script','Comic Sans MS',cursive;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;outline:none;caret-color:currentColor}
