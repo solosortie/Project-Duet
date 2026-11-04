@@ -63,9 +63,17 @@ async function handleGet(url, session, env) {
   }
   if (url.pathname.startsWith('/api/drawing/')) {
     const bits = url.pathname.split('/');
+    // A drawing never changes once saved and its address is a content hash, so browsers may keep it for good.
+    const keep = { 'Content-Type': 'application/json', 'Cache-Control': 'private, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' };
+    // One request returns every chunk of a note. The note is found through its indexed nonce (stored as "<roomId>:<nonce>" outside room 1); notes are never scanned.
+    if (bits.length === 4 && /^[a-f0-9]{64}$/.test(bits[3])) {
+      const { results } = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format=4 JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND u.room_id=? ORDER BY d.part").bind(bits[3], rid).all();
+      if (!results.length) return reply(404, { error: 'Drawing not found.' });
+      return new Response('{"drawing":[' + results.map((r) => r.data.slice(1, -1)).filter(Boolean).join(',') + ']}', { status: 200, headers: keep });
+    }
     if (bits.length !== 5 || !/^\d+$/.test(bits[4])) return reply(400, { error: 'Invalid segment.' });
-    const row = await env.DB.prepare("SELECT d.data FROM drawing_chunks d JOIN uploads u ON u.id=d.upload JOIN notes n ON n.room_id=u.room_id AND n.format=4 AND json_extract(n.drawing,'$.upload')=d.upload WHERE d.upload=? AND d.part=? AND u.room_id=?").bind(bits[3], Number(bits[4]), rid).first();
-    return row ? reply(200, '{"drawing":' + row.data + '}') : reply(404, { error: 'Drawing not found.' });
+    const row = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format=4 JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND d.part=? AND u.room_id=?").bind(bits[3], Number(bits[4]), rid).first();
+    return row ? new Response('{"drawing":' + row.data + '}', { status: 200, headers: keep }) : reply(404, { error: 'Drawing not found.' });
   }
   if (url.pathname !== '/api/notes') return reply(404, { error: 'Not found.' });
   const q = url.searchParams;

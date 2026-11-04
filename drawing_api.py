@@ -1,6 +1,7 @@
 """Chunked vector persistence and shared Kolkata day boundaries."""
 import json, time, math, re
-COLORS={'#594739','#a65f4c','#66745a','#bc8b3d','#728b98','erase'}
+import re as _re
+def color_ok(c):return c=='erase' or (isinstance(c,str) and _re.fullmatch(r'#[0-9a-f]{6}',c) is not None)
 
 def streaks(rows,now):
     today=int((now+19800)//86400);result={}
@@ -19,7 +20,7 @@ def streaks(rows,now):
 def packed_valid(items):
     if not isinstance(items,list) or not 1<=len(items)<=40:return False
     for s in items:
-        if not isinstance(s,dict) or s.get('tool') not in ('pencil','ink','marker','erase','text') or s.get('color') not in COLORS:return False
+        if not isinstance(s,dict) or s.get('tool') not in ('pencil','ink','marker','erase','text') or not color_ok(s.get('color')):return False
         tool=s.get('tool')
         if tool=='erase':
             if type(s.get('width')) is not int or not 8<=s['width']<=100:return False

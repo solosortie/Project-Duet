@@ -5,7 +5,7 @@
   if (path.length > 1 && /^\/[a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?\/$/.test(path)) { location.replace(path.slice(0, -1) + location.search); return; }
   var m = path.match(/^\/([a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?)$/);
   var slug = m && m[1];
-  var SCRIPTS = ['/drawing-store.js', '/app.js', '/ambience.js', '/export.js'];
+  var SCRIPTS = ['/drawing-store.js', '/fill.js', '/app.js', '/ambience.js', '/export.js'];
   function start() {
     SCRIPTS.forEach(function (src) { var s = document.createElement('script'); s.src = src; s.async = false; document.body.appendChild(s); });
     document.documentElement.classList.remove('room-wait');

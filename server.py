@@ -2,7 +2,7 @@
 """Project Duet — dependency-free local/server deployment."""
 import os, json, sqlite3, secrets, hashlib, hmac, time, mimetypes, io
 from email.message import Message
-from drawing_api import post_upload, streaks
+from drawing_api import post_upload, streaks, color_ok
 from http import HTTPStatus
 from pathlib import Path
 from contextlib import contextmanager
@@ -130,9 +130,9 @@ class Routes:
                     if not isinstance(stroke,dict): valid=False; break
                     tool=stroke.get('tool','ink')
                     if tool=='text':
-                        if stroke.get('color') not in ('#594739','#a65f4c','#66745a','#bc8b3d','#728b98') or not isinstance(stroke.get('text'),str) or not isinstance(stroke.get('points'),list) or len(stroke.get('points') or [])!=1: valid=False; break
+                        if (not color_ok(stroke.get('color')) or stroke.get('color')=='erase') or not isinstance(stroke.get('text'),str) or not isinstance(stroke.get('points'),list) or len(stroke.get('points') or [])!=1: valid=False; break
                         continue
-                    if stroke.get('color') not in ('#594739','#a65f4c','#66745a','#bc8b3d','#728b98','erase'): valid=False; break
+                    if not color_ok(stroke.get('color')): valid=False; break
                     if tool=='erase':
                         if type(stroke.get('width')) is not int or not 8<=stroke['width']<=100: valid=False; break
                     elif type(stroke.get('width')) is not int or not 1<=stroke['width']<=28: valid=False; break

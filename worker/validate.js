@@ -1,6 +1,9 @@
 // Note validation, a faithful port of the rules in server.py. Pure functions: no I/O.
-const COLORS = new Set(['#594739', '#a65f4c', '#66745a', '#bc8b3d', '#728b98', 'erase']);
-const TOOLS = new Set(['pencil', 'ink', 'marker', 'erase', 'text']);
+// Any #rrggbb colour is allowed (the colour menu lets people add their own); 'erase' marks eraser strokes.
+const HEX = /^#[0-9a-f]{6}$/;
+const validColor = (c) => c === 'erase' || (typeof c === 'string' && HEX.test(c));
+const TOOLS = new Set(['pencil', 'ink', 'marker', 'erase', 'text', 'fill']);
+const FILL_MAX_POINTS = 1500, FILL_MAX_LOOPS = 24;
 const TEXT_SIZES = new Set([28, 40, 56, 80]);
 const TEXT_BAD = /[\u0000-\u0009\u000b-\u001f\u007f]/;   // newlines are fine, other control characters are not
 const PAPERS = new Set(['cream', 'rose', 'sage', 'blue']);
@@ -14,9 +17,18 @@ function validDrawing(drawing) {
   for (let i = 0; i < drawing.length; i++) {
     const s = drawing[i];
     if (s === null || typeof s !== 'object' || Array.isArray(s)) return false;
-    if (!COLORS.has(s.color)) return false;
+    if (!validColor(s.color)) return false;
     const tool = 'tool' in s ? s.tool : 'ink';
     if (!TOOLS.has(tool)) return false;
+    if (tool === 'fill') {   // a flood fill, stored as the outline of the filled area: closed loops of integer points
+      if (s.color === 'erase' || s.width !== 1 || !Array.isArray(s.points) || !Array.isArray(s.loops)) return false;
+      if (s.points.length < 3 || s.points.length > FILL_MAX_POINTS || s.loops.length < 1 || s.loops.length > FILL_MAX_LOOPS) return false;
+      let sum = 0;
+      for (const n of s.loops) { if (!isInt(n) || n < 3) return false; sum += n; }
+      if (sum !== s.points.length) return false;
+      for (const p of s.points) { if (!Array.isArray(p) || p.length !== 2 || !isInt(p[0]) || p[0] < 0 || p[0] > 1000 || !isInt(p[1]) || p[1] < 0 || p[1] > 720) return false; }
+      continue;
+    }
     if (tool === 'erase') {
       if (!isInt(s.width) || s.width < 8 || s.width > 100) return false;
     } else if (tool !== 'text') {
