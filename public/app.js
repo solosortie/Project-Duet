@@ -5,6 +5,8 @@ const canvas=$('#drawing'), audio=$('#music');
 let person=null, notes=new Map(), hasMore=false, syncing=false, currentView='welcome', syncCursor=0, initialized=false;
 let strokes=[], redo=[], active=null, color='#594739', tool='pencil', paper='cream', nonce=null, posting=false, previewing=false, draftTimer=null;const toolSizes={pencil:4,ink:4,marker:8,erase:28};
 let editorMode='canvas';
+// Shared (server) draft being edited, or null for the private scratch page. base = revision it was loaded from or last saved as.
+let draftId=null, draftBase=0, draftTitle='', editCount=0, savedCount=0;
 const wordCount=text=>(text.trim().match(/\S+/gu)||[]).length;
 const titleName=p=>(window.DUET_ROOM&&window.DUET_ROOM.names[p])||(p==='chat'?'ChatChan':'Aryan Chan');const animalOf=p=>(window.DUET_ROOM&&window.DUET_ROOM.animals[p])||(p==='chat'?'deer':'cat');
 const uid=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');
@@ -15,8 +17,8 @@ async function rawApi(path,data){
 }
 async function hydrateAll(list){const out=new Array(list.length);let next=0;const lane=async()=>{while(next<list.length){const k=next++;out[k]=await DrawingStore.hydrate(list[k],rawApi)}};await Promise.all(Array.from({length:Math.min(4,list.length)},lane));return out}
 async function api(path,data){try{const result=await rawApi(path,data);if(result.notes)result.notes=await hydrateAll(result.notes);if(result.note)result.note=await DrawingStore.hydrate(result.note,rawApi);return result}catch(error){if(error.note)error.note=await DrawingStore.hydrate(error.note,rawApi);throw error}}
-function show(view){currentView=view;window.dispatchEvent(new Event('duet:view'));requestAnimationFrame(placeMeadow);$('#identity-avatar').src='assets/portrait-'+animalOf(person)+'.svg';document.body.dataset.view=view;['welcome','choose','walls'].forEach(v=>$('#'+v).hidden=v!==view);$('#identity').hidden=!person;$('#identity-label').textContent=person?'Logged in as '+titleName(person):'';$('#switch').hidden=view!=='walls';$('#lock').hidden=view==='welcome';updateFavicon();}
-function updateFavicon(){const href=person?'assets/favicon-'+animalOf(person)+'.svg':'assets/favicon.svg';let link=document.querySelector('link[rel="icon"]');if(!link){link=document.createElement('link');link.rel='icon';link.type='image/svg+xml';document.head.appendChild(link)}link.href=href;}
+function show(view){currentView=view;window.dispatchEvent(new Event('duet:view'));requestAnimationFrame(placeMeadow);$('#identity-avatar').src='assets/portrait-'+animalOf(person)+'.webp';document.body.dataset.view=view;['welcome','choose','walls'].forEach(v=>$('#'+v).hidden=v!==view);$('#identity').hidden=!person;$('#identity-label').textContent=person?'Logged in as '+titleName(person):'';$('#switch').hidden=view!=='walls';$('#lock').hidden=view==='welcome';updateFavicon();}
+function updateFavicon(){const href=person?'assets/favicon-'+animalOf(person)+'.png':'assets/favicon.svg';let link=document.querySelector('link[rel="icon"]');if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link)}link.type=href.endsWith('.png')?'image/png':'image/svg+xml';link.href=href;}
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('show');setTimeout(()=>$('#toast').classList.remove('show'),2600)}
 // All sound and motion controls live in the settings sheet.
 const audioSettings=store.get('duet-audio',{volume:30,muted:false});
@@ -157,8 +159,16 @@ function pendingCard(card,n){
   const date=document.createElement('time');date.dateTime=new Date(n.created*1000).toISOString();date.textContent=new Date(n.created*1000).toLocaleDateString(undefined,{month:'short',day:'numeric',timeZone:(window.DUET_ROOM&&window.DUET_ROOM.timezone)||'Asia/Kolkata'});card.append(date);
   const load=()=>queueHydrate(async()=>{try{const full=await DrawingStore.hydrate(n,rawApi);if(!card.isConnected)return;notes.set(n.id,full);swapCard(card,makeCard(full,false,false),key)}catch{holder.__paint=load;setTimeout(()=>lazyPaint?lazyPaint.observe(holder):load(),6000)}});
   holder.__paint=load;if(lazyPaint)lazyPaint.observe(holder);else load();return card}
-function makeCard(n,preview=false,lazy=false){const card=document.createElement('article');card.className='note '+n.paper;card.dataset.id=n.id||'';const hash=[...(n.nonce||String(n.id))].reduce((value,ch)=>Math.imul(value^ch.charCodeAt(0),16777619)>>>0,2166136261);const arrangement=hash%6;card.dataset.tape=arrangement;
-  for(let i=0;i<(arrangement===1||arrangement===3?2:1);i++){const tape=document.createElement('img');tape.src=['assets/tape.svg','assets/tape-washi.svg','assets/tape-torn.svg'][(Math.floor(hash/7)+i)%3];tape.alt='';tape.className='tape';tape.style.opacity=String(.79+(hash%14)/100);card.append(tape)}
+// Tape: every note gets one roll and one layout, both picked from the note's nonce so both people see the same tape.
+// Which layouts a roll may use: yellow stays horizontal; red is horizontal plus the top-right/top-left slants;
+// green and blue may use any of the five. Layouts: top strip, opposite corners, both top corners, long top-corner diagonal (right or left), two upright pieces.
+const TAPE_ROLLS=['red','yellow','blue','green'];
+const TAPE_H=['top'];
+const TAPE_LAYOUTS={yellow:TAPE_H,red:[...TAPE_H,'tr','tl'],blue:[...TAPE_H,'corners-a','tin','tr','tl','up'],green:[...TAPE_H,'corners-a','tin','tr','tl','up']};
+const TAPE_PIECES={top:1,tr:1,tl:1};
+function tapeMix(h){h=Math.imul(h^(h>>>16),2246822507)>>>0;h=Math.imul(h^(h>>>13),3266489909)>>>0;return (h^(h>>>16))>>>0}
+function addTapes(card,hash){const h=tapeMix(hash>>>0),roll=TAPE_ROLLS[h%4],list=TAPE_LAYOUTS[roll],layout=list[tapeMix(h+1)%list.length];card.dataset.tape=layout;for(let i=0;i<(TAPE_PIECES[layout]||2);i++){const tape=document.createElement('img');tape.src='assets/tape-'+roll+'.webp';tape.alt='';tape.className='tape '+roll+' t'+(i+1);card.append(tape)}}
+function makeCard(n,preview=false,lazy=false){const card=document.createElement('article');card.className='note '+n.paper;card.dataset.id=n.id||'';const hash=[...(n.nonce||String(n.id))].reduce((value,ch)=>Math.imul(value^ch.charCodeAt(0),16777619)>>>0,2166136261);addTapes(card,hash);
   if(n.format===3){const text=document.createElement('p');text.className='written-note';text.dataset.size=n.text_size||40;text.textContent=n.text;card.append(text)}
   if(n.format===4&&n.drawing&&n.drawing.upload&&!preview)return pendingCard(card,n);
   let drawing=n.format!==3&&!n.text?croppedStrokes(n.drawing,n.format===2?720:650,lazy):null;
@@ -182,7 +192,7 @@ async function sync(older=false){
   if(syncing||!person)return;syncing=true;const owner=person;
   try{
     if(!initialized||older){const cursor=older&&notes.size?Math.min(...notes.keys()):null;const result=await rawApi('notes'+(cursor?'?before='+cursor:''));if(owner!==person)return;for(const n of result.notes)notes.set(n.id,n);hasMore=result.more;if(!initialized){syncCursor=Math.max(0,...result.notes.map(n=>n.id));initialized=true}render()}
-    else {let more=true;while(more){const result=await rawApi('notes?after='+syncCursor);if(owner!==person)return;if(result.notes.length){for(const n of result.notes)notes.set(n.id,n);syncCursor=result.notes[result.notes.length-1].id;render();window.dispatchEvent(new Event('duet:updated'))}more=result.more}}
+    else {let more=true;while(more){const result=await rawApi('notes?after='+syncCursor);if(owner!==person)return;if(result.drafts)Shelf.stamp(result.drafts);if(result.notes.length){for(const n of result.notes)notes.set(n.id,n);syncCursor=result.notes[result.notes.length-1].id;render();window.dispatchEvent(new Event('duet:updated'))}more=result.more}}
     $('#connection').textContent='';
   }catch(e){$('#connection').textContent=e.message}finally{syncing=false}
 }
@@ -221,10 +231,10 @@ function undoStroke(){if(posting||previewing)return;commitText();const op=undoSt
 function redoStroke(){if(posting||previewing)return;commitText();const op=redoStack.pop();if(!op)return;applyRedo(op);undoStack.push(op);repaint();saveDraft()}
 $('#undo').onclick=undoStroke;$('#redo').onclick=redoStroke;
 
-function draftKey(){return 'duet-draft-'+(window.DUET_ROOM&&!window.DUET_ROOM.legacy?window.DUET_ROOM.slug+'-':'')+person+'-canvas'}
+function draftKey(){return 'duet-draft-'+(window.DUET_ROOM&&!window.DUET_ROOM.legacy?window.DUET_ROOM.slug+'-':'')+person+(draftId?'-d-'+draftId:'-canvas')}
 function noteDraftKey(){return draftKey().replace(/-canvas$/,'-note')}
-async function flushDraft(){clearTimeout(draftTimer);if(!person||!$('#editor').open||posting)return;const key=draftKey(),savedNonce=nonce,comp=composition(),value={...comp,strokes:comp.drawing,mode:'canvas',tool,color,size:Number($('#pen-size').value),tsize:textSize};try{await Drafts.set(key,value);if(nonce===savedNonce&&!posting)$('#draft-status').textContent='Draft saved on this device'}catch{if(nonce===savedNonce)$('#draft-status').textContent='Draft storage unavailable — keep this tab open'}}
-function saveDraft(){if(posting)return;clearTimeout(draftTimer);draftTimer=setTimeout(flushDraft,450)}
+async function flushDraft(){clearTimeout(draftTimer);if(!person||!$('#editor').open||posting)return;const key=draftKey(),savedNonce=nonce,comp=composition(),value={...comp,strokes:comp.drawing,mode:'canvas',tool,color,size:Number($('#pen-size').value),tsize:textSize,draftId,base:draftBase,title:draftTitle,dirty:editCount!==savedCount};try{await Drafts.set(key,value);if(nonce===savedNonce&&!posting&&!draftId)$('#draft-status').textContent='Draft saved on this device'}catch{if(nonce===savedNonce)$('#draft-status').textContent='Draft storage unavailable — keep this tab open'}}
+function saveDraft(){if(posting)return;editCount++;clearTimeout(draftTimer);draftTimer=setTimeout(flushDraft,450);typeof Shelf!=='undefined'&&Shelf.queue()}
 window.addEventListener('pagehide',flushDraft);window.addEventListener('beforeunload',flushDraft);
 function selectPaper(value){paper=value;paintLive();$('#editor-paper').className='editor-paper '+paper;$$('[data-paper]').forEach(b=>{b.classList.toggle('selected',b.dataset.paper===paper);b.setAttribute('aria-pressed',String(b.dataset.paper===paper))})}
 // ---- Colour menu: one extra circle beside the inks opens a small menu with more colours, your own colours and a picker ----
@@ -302,16 +312,28 @@ function setTool(value){
 }
 
 function preview(value){if(value)commitText();previewing=value;$('#editor').classList.toggle('previewing',value);$('#preview-wrap').hidden=!value;$('#preview span').textContent=value?'Keep editing':'Preview';if(value){const card=makeCard(composition(),true);card.id='note-preview';$('#note-preview').replaceWith(card)}else repaint()}
-async function openEditor(){await document.fonts.load('40px "Duet Script"');const legacy=window.DuetDev||(window.DUET_ROOM&&!window.DUET_ROOM.legacy)?{}:store.get('duet-draft-'+person,{});const draft=await Drafts.get(draftKey(),store.get(draftKey(),{...legacy,nonce:uid()}));
+async function openEditor(sd){await document.fonts.load('40px "Duet Script"');if(sd&&sd.id===undefined)sd=null;
+  draftId=sd?sd.id:null;draftBase=sd?sd.rev:0;draftTitle=sd?sd.title||'':'';editCount=0;savedCount=0;
+  let draft,restored=0;
+  if(sd){
+    draft={strokes:sd.drawing,paper:sd.paper,nonce:sd.nonce,title:sd.title};
+    // Unsynced edits kept on this device win only if they were made on top of the version that is on the server now.
+    const local=await Drafts.get(draftKey(),null);
+    if(local&&local.dirty){if(local.base===sd.rev){draft=local;draftTitle=local.title||'';restored=1}else await Shelf.forkLocal(local,sd)}
+  }else{
+    const legacy=window.DuetDev||(window.DUET_ROOM&&!window.DUET_ROOM.legacy)?{}:store.get('duet-draft-'+person,{});draft=await Drafts.get(draftKey(),store.get(draftKey(),{...legacy,nonce:uid()}));draftTitle=draft.title||'';
+  }
   strokes=(draft.strokes||draft.drawing||[]).slice();textSel=null;hiddenIndex=-1;active=null;nonce=draft.nonce||uid();let paperPick=draft.paper||'cream';
   // an unsent written note from before text lived on the canvas becomes a text item on the page
-  const old=await Drafts.get(noteDraftKey(),store.get(noteDraftKey(),null)).catch(()=>null);
+  const old=sd?null:await Drafts.get(noteDraftKey(),store.get(noteDraftKey(),null)).catch(()=>null);
   if(old&&(old.text||'').trim()&&strokes.length<500){const size={32:28,40:40,52:56}[old.text_size]||40;strokes.push(finalizeText({tool:'text',color:'#594739',size,w:880,text:old.text,points:[[60,60]]}));if(!draft.paper&&old.paper)paperPick=old.paper;await Drafts.remove(noteDraftKey()).catch(()=>{});store.remove(noteDraftKey())}
   undoStack=strokes.map(()=>({k:'add'}));redoStack=[];textSize=draft.tsize||40;setTextSize(textSize,true);$('#pen-size').value=draft.size||4;if(draft.tool&&draft.tool!=='text')toolSizes[draft.tool]=Number(draft.size)||toolSizes[draft.tool]||4;selectPaper(paperPick);selectColor(HEXRE.test(draft.color)?draft.color:'#594739',true);
-  $('#editor-title').textContent='On '+titleName(person==='aryan'?'chat':'aryan')+'’s wall';$('#post-error').textContent='';$('#editor').showModal();preview(false);setTool(['pencil','ink','marker','text','erase','fill'].includes(draft.tool)?draft.tool:'pencil');flushDraft()}
+  $('#draft-title').value=draftTitle;$('#editor-title').textContent='On '+titleName(person==='aryan'?'chat':'aryan')+'’s wall';$('#post-error').textContent='';$('#editor').showModal();preview(false);setTool(['pencil','ink','marker','text','erase','fill'].includes(draft.tool)?draft.tool:'pencil');editCount=restored;savedCount=0;Shelf.began();flushDraft()}
 $('#compose').onclick=()=>openEditor();
-$('#close-editor').onclick=()=>{flushDraft();$('#editor').close()};
-$('#editor').addEventListener('cancel',e=>{if(!inkMenu.hidden){e.preventDefault();closeInkMenu();return}if(posting)e.preventDefault();else if(textSel){e.preventDefault();commitText()}else flushDraft()});
+$('#draft-title').oninput=()=>{draftTitle=$('#draft-title').value;saveDraft()};
+$('#close-editor').onclick=async()=>{await flushDraft();await Shelf.leave();$('#editor').close()};
+$('#editor').addEventListener('close',()=>Shelf.ended());
+$('#editor').addEventListener('cancel',e=>{if(!inkMenu.hidden){e.preventDefault();closeInkMenu();return}if(posting)e.preventDefault();else if(textSel){e.preventDefault();commitText()}else{flushDraft();Shelf.leave()}});
 $$('[data-tsize]').forEach(b=>b.onclick=()=>setTextSize(b.dataset.tsize));
 $$('[data-tool]').forEach(b=>b.onclick=()=>setTool(b.dataset.tool));
 $$('[data-color]').forEach(b=>b.onclick=()=>{selectColor(b.dataset.color);if(tool==='erase')setTool('pencil');saveDraft()});
@@ -337,7 +359,7 @@ document.addEventListener('keydown',e=>{if(!$('#editor').open)return;const typin
   if(e.key==='Escape'&&textSel){e.preventDefault();e.stopPropagation();commitText();return}
   if(typing||e.altKey||e.shiftKey)return;const pick={p:'pencil',i:'ink',m:'marker',t:'text',e:'erase',f:'fill'}[e.key.toLowerCase()];if(pick){e.preventDefault();setTool(pick)}});
 function busy(value){posting=value;$$('#editor button,#editor input,#editor textarea,#editor select').forEach(b=>b.disabled=value);$('#post span').textContent=value?'Saving…':'Stick to the wall';if(!value)repaint()}
-$('#post').onclick=async()=>{if(posting)return;commitText();const payload=composition(),check=document.createElement('canvas');check.width=1000;check.height=720;compose(check,payload);if(!cropped(check)){$('#post-error').textContent='Write or draw something first.';return}const pendingDraft=flushDraft();busy(true);await pendingDraft;$('#draft-status').textContent='Saving to the wall…';$('#post-error').textContent='';try{const result=await DrawingStore.save(payload,api,(done,total)=>{$('#draft-status').textContent='Saving '+done+' / '+total});notes.set(result.note.id,result.note);await Drafts.remove(draftKey()).catch(()=>{});store.remove(draftKey());$('#editor').close();window.dispatchEvent(new Event('duet:posted'));setWall(person==='aryan'?'chat':'aryan');render();}catch(e){if(e.code==='draft_changed'){notes.set(e.note.id,e.note);nonce=uid();render()}$('#post-error').textContent=e.message;$('#draft-status').textContent='Not posted · draft kept';}finally{busy(false);if($('#editor').open)flushDraft()}};
+$('#post').onclick=async()=>{if(posting)return;commitText();const payload=composition(),check=document.createElement('canvas');check.width=1000;check.height=720;compose(check,payload);if(!cropped(check)){$('#post-error').textContent='Write or draw something first.';return}const pendingDraft=flushDraft();busy(true);await pendingDraft;$('#draft-status').textContent='Saving to the wall…';$('#post-error').textContent='';try{const result=await DrawingStore.save(payload,api,(done,total)=>{$('#draft-status').textContent='Saving '+done+' / '+total});notes.set(result.note.id,result.note);await Drafts.remove(draftKey()).catch(()=>{});store.remove(draftKey());if(draftId){Shelf.stuck(draftId);draftId=null;draftBase=0;draftTitle=''}$('#editor').close();window.dispatchEvent(new Event('duet:posted'));setWall(person==='aryan'?'chat':'aryan');render();}catch(e){if(e.code==='draft_changed'){notes.set(e.note.id,e.note);nonce=uid();render()}$('#post-error').textContent=e.message;$('#draft-status').textContent='Not posted · draft kept';}finally{busy(false);if($('#editor').open)flushDraft()}};
 document.fonts.addEventListener?.('loadingdone',()=>{if($('#editor').open){baseDirty=true;paintLive();placeTextBox()}});
 
 (async()=>{await document.fonts.load('40px "Duet Script"');try{const s=await api('session');person=s.person;if(person){show('walls');setWall(person);await sync()}else show('choose')}catch{show('welcome')}audioUI()})();

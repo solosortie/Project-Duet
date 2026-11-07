@@ -5,6 +5,21 @@
  const dev=window.DuetDev={person:'aryan',rate:0,speed:1,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches,delay:0,fail:false,day:Math.floor((clock+19800000)/86400000),notes:[],sharedCount:3,completed:false,contributions:{aryan:false,chat:false},lastCompletedDay:Math.floor((clock+19800000)/86400000)-1,now:()=>clock+(performance.now()-anchor)*dev.rate,
   setTime(value){clock=value;anchor=performance.now()},
   state(){const day=Math.floor((dev.now()+19800000)/86400000),elapsed=day-dev.day;if(elapsed>0){if(!dev.completed||elapsed>1)dev.sharedCount=0;dev.completed=false;dev.contributions={aryan:false,chat:false}}dev.day=day;return {now:dev.now(),day,shared:{count:dev.sharedCount,today:dev.completed,contributions:{...dev.contributions},lastCompletedDay:dev.lastCompletedDay}}},
+  drafts(path,data){const d=dev.shelf||(dev.shelf=new Map()),now=dev.now()/1000,meta=r=>({id:r.id,author:r.author,editor:r.editor,title:r.title,paper:r.paper,rev:r.rev,strokes:r.strokes,created:r.created,updated:r.updated,thumb:r.thumb,editing:null,deleted:r.deleted});
+   const live=()=>[...d.values()].filter(r=>!r.deleted).sort((a,b)=>b.updated-a.updated);
+   if(!data){if(path==='drafts')return {drafts:live().map(meta),stamp:{n:live().length,t:Math.max(0,...live().map(r=>r.updated))},now};
+    if(path==='drafts?deleted=1')return {drafts:[...d.values()].filter(r=>r.deleted).map(meta),stamp:{n:live().length,t:0},now};
+    const r=d.get(path.slice(7));if(!r||r.deleted)throw Error('That draft is gone.');return {draft:{...meta(r),nonce:r.nonce,drawing:r.chunks.flat()}}}
+   const r=d.get(data.id),fail=(code,error)=>Object.assign(Error(error),{code});
+   if(path==='drafts'){const pend=dev.pend||(dev.pend=new Map()),key=data.save;pend.set(key,[...(pend.get(key)||[]),data]);if(data.part!==data.total-1)return {ok:true};
+    if(r&&r.deleted)throw fail('draft_deleted','This draft was deleted.');if(!r&&data.base!==0)throw fail('draft_gone','This draft is gone.');if(r&&r.rev!==data.base)throw fail('draft_conflict','A newer version exists.');
+    const parts=pend.get(key).sort((a,b)=>a.part-b.part),chunks=parts.map(x=>x.drawing),n={id:data.id,author:r?r.author:dev.person,editor:dev.person,title:data.title,paper:data.paper,nonce:data.nonce,rev:(r?r.rev:0)+1,strokes:chunks.flat().length,created:r?r.created:now,updated:now,thumb:data.thumb||(r&&r.thumb)||'',chunks};
+    d.set(n.id,n);pend.delete(key);return {ok:true,draft:meta(n)}}
+   if(path==='drafts/ping')return {rev:r?r.rev:0,editor:r&&r.editor,updated:r&&r.updated,editing:null};
+   if(path==='drafts/delete'){if(data.stuck)d.delete(data.id);else if(r)r.deleted=now;return {ok:true}}
+   if(path==='drafts/restore'){if(r)r.deleted=null;return {ok:true}}
+   if(path==='drafts/copy'){const id=DrawingStore&&Array.from(crypto.getRandomValues(new Uint8Array(16)),v=>v.toString(16).padStart(2,'0')).join('');const n={...r,id,nonce:id,author:dev.person,editor:dev.person,rev:1,title:r.title?r.title+' (copy)':'',created:now,updated:now};d.set(id,n);return {draft:meta(n)}}
+   throw Error('Preview does not implement this request.')},
   async request(path,data){if(dev.delay)await new Promise(r=>setTimeout(r,dev.delay));if(dev.fail)throw Error('Preview: simulated connection failure. Draft kept.');
    if(path==='session')return {person:dev.person};if(path==='time'||path==='state')return dev.state();if(path==='person'){dev.person=data.person;return {ok:true}}if(path==='unlock'||path==='logout')return {ok:true};
    if(path.startsWith('notes')&&!data){const q=new URLSearchParams(path.split('?')[1]),after=Number(q.get('after')||0);return {notes:dev.notes.filter(n=>n.id>after),more:false}}
@@ -12,6 +27,7 @@
    if(path==='uploads/chunk'){uploads.get(data.upload).chunks[data.part]=data.drawing;return {ok:true}}
    if(path==='uploads/commit'){const u=uploads.get(data.upload);data={...u,format:2,text:'',drawing:u.chunks.flat().map(DrawingStore.unpack)};path='notes'}
    if(path==='notes'&&data){dev.state();let n=dev.notes.find(n=>n.nonce===data.nonce);if(!n){n={...data,id:++id,created:dev.now()/1000,author:dev.person,recipient:dev.person==='aryan'?'chat':'aryan'};dev.notes.push(n);dev.contributions[dev.person]=true;if(!dev.completed&&dev.contributions.aryan&&dev.contributions.chat){dev.sharedCount++;dev.completed=true;dev.lastCompletedDay=dev.day}}return {note:n}}
+   if(path.startsWith('drafts'))return dev.drafts(path,data);
    throw Error('Preview does not implement this request.');
   }
  };

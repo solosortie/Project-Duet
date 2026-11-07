@@ -5,7 +5,7 @@
   function esc(t) { var d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
   function render(status) {
     document.title = status === 'pending' ? 'Waiting · Project Duet' : 'Nobody here · Project Duet';
-    box.innerHTML = '<div class="pair"><figure><img alt="" src="/assets/deer-seat.svg"></figure><figure><img alt="" src="/assets/cat-seat.svg"></figure></div>'
+    box.innerHTML = '<div class="pair"><figure><img alt="" src="/assets/deer-seat.webp"></figure><figure><img alt="" src="/assets/cat-seat.webp"></figure></div>'
       + (status === 'pending'
         ? '<div class="wait">' + HG + '<span>Waiting for approval.</span></div><p class="sub">/' + esc(slug) + '</p>'
         : '<div class="wait"><span>Nobody here yet.</span></div><p style="margin-top:18px"><a class="cta" href="/dev/">Make one</a></p>');

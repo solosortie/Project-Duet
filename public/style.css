@@ -27,7 +27,6 @@ main{width:min(1200px,90%);margin:auto;padding-bottom:100px}
 .animal-pair img:first-child{transform:rotate(-2deg)}
 .animal-pair img:last-child{transform:rotate(1deg)}
 .entry-paper{width:300px;max-width:100%;margin:18px auto 0;padding:32px 29px 13px;position:relative;transform:rotate(-1deg);background:var(--cream);box-shadow:3px 5px 14px #7151250a;border:1px solid #d8c5a0;border-radius:2px 5px 4px 2px}
-.tape{position:absolute;width:100px;height:30px;top:-14px;left:calc(50% - 50px);transform:rotate(7deg);pointer-events:none}
 .entry-paper label{display:block;font:18px 'Duet Hand',sans-serif;letter-spacing:.05em;text-align:center}
 .pass-row{display:flex;align-items:center;border-bottom:1px solid #b39972;margin-top:15px}
 .pass-row input{background:none;border:0;padding:10px 4px;width:100%;min-width:0;text-align:center;letter-spacing:7px;font-size:22px}
@@ -66,10 +65,6 @@ main{width:min(1200px,90%);margin:auto;padding-bottom:100px}
 .note:before{content:'';position:absolute;inset:0;z-index:-1;background:var(--paper-color);clip-path:polygon(.3% 1%,16% .3%,35% .7%,57% 0,78% .5%,99% .2%,99.6% 17%,99.1% 43%,100% 67%,99.4% 98.5%,81% 99.1%,64% 98.7%,43% 100%,22% 99.2%,.6% 99.7%,0 74%,.5% 55%,0 33%)}
 .note:nth-child(3n+2){transform:rotate(1.1deg)}
 .note:nth-child(3n){transform:rotate(-.4deg)}
-.note[data-tape="1"] .tape:first-of-type{left:8%;transform:rotate(-24deg);top:-11px;width:83px}
-.note[data-tape="1"] .tape:nth-of-type(2){left:auto;right:2%;top:auto;bottom:4px;transform:rotate(-29deg);width:65px}
-.note[data-tape="2"] .tape{left:auto;right:4%;transform:rotate(25deg);width:90px;top:-8px}
-.note[data-tape="0"] .tape{left:calc(50% - 55px);transform:rotate(-5deg);width:110px}
 .note canvas{display:block;width:100%;height:auto}
 .note p{white-space:pre-wrap;overflow-wrap:anywhere;font:26px/1.45 'Duet Script',cursive;margin:0 0 15px}
 .note time{display:block;text-align:right;font-size:10px;color:#8e7b61;margin-top:13px}
@@ -243,11 +238,6 @@ body[data-view=walls] .wordmark{font-size:clamp(42px,6.7vw,82px)}
 #settings .paper-button{min-width:105px}
 .volume-label{font-size:14px;font-weight:bold}
 #save-help{font-size:13px;line-height:1.45;color:#65543e}
-.note .tape{filter:drop-shadow(0 1px 0 #7b5f3210)}
-.note[data-tape="3"] .tape{left:5%;top:-9px;width:75px;transform:rotate(-13deg)}
-.note[data-tape="3"] .tape:nth-of-type(2){left:auto;right:5%;width:65px;transform:rotate(19deg)}
-.note[data-tape="4"] .tape{left:auto;right:-11px;top:20px;width:70px;transform:rotate(75deg)}
-.note[data-tape="5"] .tape{left:calc(50% - 40px);top:-10px;width:80px;transform:rotate(3deg)}
 
 @media(max-width:900px){.brand-scene{height:215px}
 .brand-deer{width:175px;bottom:77px;left:7%}
@@ -344,10 +334,6 @@ body[data-view=walls] .wordmark{display:block;white-space:nowrap;font-size:clamp
 body:is([data-view=welcome],[data-view=choose]){min-height:100svh;overflow-x:clip}
 body:is([data-view=welcome],[data-view=choose]) main{padding-bottom:50px}
 body[data-view=choose] .choices{margin-top:20px}
-.note .tape{top:-16px!important;z-index:2}
-.note[data-tape="1"] .tape:nth-of-type(2){top:auto!important;bottom:-13px;right:4%}
-.note[data-tape="4"] .tape{top:22px!important;right:-34px}
-.note[data-tape="3"] .tape{top:-16px!important}
 
 @media(max-width:620px){.entry-scene:before{display:none!important}
 body:is([data-view=welcome],[data-view=choose]) main{padding-bottom:24px}
@@ -842,3 +828,62 @@ canvas.ed-sample{display:block;width:100%;height:56px}
 /* Phones: the page runs nearly edge to edge */
 @media(max-width:760px){.ed-body{padding:8px 12px}.editor-paper{margin-inline:-8px;border-radius:0}}
 @media(max-width:760px){.ink-grid{grid-template-columns:repeat(6,1fr)}}
+
+/* ===== Drafts: the shelf, its button and the name field ===== */
+.wall-buttons{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+#drafts-open{color:var(--cocoa);background:#fff6e5aa;border:2.3px solid var(--cocoa);border-radius:7px 12px 6px 10px / 10px 6px 12px 7px;padding:12px 20px;transform:none}
+#drafts-open svg{width:27px;height:27px;stroke-width:2}
+#drafts-open:hover,#drafts-open:active{transform:none;background:#f5e8c8}
+#drafts-open:hover .note-flat,#drafts-open:focus-visible .note-flat{opacity:0}
+#drafts-open:hover .note-lift,#drafts-open:focus-visible .note-lift{opacity:1;filter:drop-shadow(1px 2px 0 #59473924)}
+#drafts-open:active .note-lift{transform:translateY(1px);filter:none}
+.drafts-count{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 6px;margin-left:-2px;border-radius:48% 54% 45% 56% / 55% 46% 54% 47%;background:var(--terracotta);color:var(--cream);font:14px/1 'Duet Text',sans-serif;border:1.6px solid var(--cocoa)}
+
+#drafts{width:min(780px,94vw);max-height:calc(100dvh - 60px);margin:36px auto auto;padding:22px 28px 26px;border:2px solid var(--cocoa);border-radius:8px 12px 6px 10px;background:var(--cream);overflow:auto;font-family:'Duet Text',sans-serif}
+#drafts-title{font-family:'Duet Text',sans-serif;font-weight:400}
+.drafts-empty{font:20px/1.4 'Duet Script',cursive;color:var(--muted);text-align:center;margin:34px 0 30px}
+.drafts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:34px 28px;padding:16px 6px 10px}
+.draft-card{margin:0;padding:24px 14px 8px;animation:none;display:flex;flex-direction:column;gap:4px;color:var(--cocoa)}
+.draft-open{display:block;width:100%;padding:0;text-align:left;color:inherit}
+.draft-open:hover .draft-name{text-decoration:underline wavy #9d6c3566;text-underline-offset:4px}
+.draft-thumb{display:block;width:100%;aspect-ratio:320/230;object-fit:cover;border:1.5px solid #59473933;border-radius:3px 6px 3px 5px;background:var(--cream)}
+.draft-name{display:block;margin-top:9px;font:400 24px/1.2 'Duet Script',cursive;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.draft-meta{display:block;font:14px/1.4 'Duet Text',sans-serif;color:var(--muted)}
+.draft-actions{display:flex;justify-content:flex-end;gap:2px;margin-top:-2px}
+.draft-actions .icon-button,.bin-row .icon-button{width:38px;height:38px}
+.draft-actions svg,.bin-row svg{width:22px;height:22px}
+.drafts-bin{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)}
+.bin-toggle{font:16px 'Duet Text',sans-serif;color:var(--muted);padding:4px 0}
+.bin-toggle:after{content:' ▾';font-size:12px}.bin-toggle[aria-expanded=true]{color:var(--cocoa)}.bin-toggle[aria-expanded=true]:after{content:' ▴'}
+.bin-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0;font:16px 'Duet Text',sans-serif;border-bottom:1px dotted var(--line)}
+.bin-empty{margin:8px 0 0;font:15px 'Duet Text',sans-serif;color:var(--muted)}
+#drafts .error{margin:12px 0 0;font:15px/1.4 'Duet Text',sans-serif}
+
+.draft-title{flex:0 1 240px;min-width:0;padding:4px 2px;border:0;border-bottom:1.6px dashed #b8a27e;border-radius:0;background:transparent;font:400 21px 'Duet Script',cursive;color:var(--cocoa);text-overflow:ellipsis}
+.draft-title::placeholder{color:#a8967a}
+.draft-title:focus{outline:0;border-bottom:1.6px solid var(--moss)}
+@media(max-width:760px){
+ .wall-buttons{gap:8px}#drafts-open,#compose{padding:10px 14px}#drafts-open strong,#compose strong{font-size:15px}
+ #drafts{margin-top:14px;padding:18px 16px 22px}.drafts-grid{grid-template-columns:1fr 1fr;gap:30px 16px}
+ .draft-title{flex-basis:130px;font-size:18px}
+}
+@media(max-width:430px){.drafts-grid{grid-template-columns:1fr}.draft-title{flex-basis:96px}}
+
+/* Tape. Each piece is centred on (--x, --y) and turned by --r; --len is the roll's length and --k the piece's share of it.
+   Five layouts: top (one strip across the top), corners-a (opposite corners, top-left + bottom-right), tin (both top corners, angled inward),
+   tr / tl (one long diagonal piece across the top-right / top-left corner), up (two upright pieces over the top edge).
+   app.js decides which rolls may use which layouts. */
+.note .tape{position:absolute;left:var(--x);top:var(--y);width:calc(var(--len,96px)*var(--k,1));height:auto;pointer-events:none;z-index:2;transform:translate(-50%,-50%) rotate(var(--r,0deg));filter:drop-shadow(0 1px 1px #5a3f2216)}
+.note .tape.red{--len:100px}.note .tape.yellow{--len:94px}.note .tape.blue{--len:88px}.note .tape.green{--len:82px}
+.note[data-tape="top"] .tape{--k:1;--x:50%;--y:2px;--r:-1.5deg}
+.note[data-tape="corners-a"] .tape{--k:.82;--r:-38deg}
+.note[data-tape="corners-a"] .t1{--x:10px;--y:10px}
+.note[data-tape="corners-a"] .t2{--x:calc(100% - 10px);--y:calc(100% - 10px)}
+.note[data-tape="tin"] .tape{--k:.82;--y:10px}
+.note[data-tape="tin"] .t1{--x:12px;--r:-34deg}
+.note[data-tape="tin"] .t2{--x:calc(100% - 12px);--r:34deg}
+.note[data-tape="tr"] .tape{--k:1.35;--x:calc(100% - 22px);--y:22px;--r:40deg}
+.note[data-tape="tl"] .tape{--k:1.35;--x:22px;--y:22px;--r:-40deg}
+.note[data-tape="up"] .tape{--k:.9;--y:0px;--r:90deg}
+.note[data-tape="up"] .t1{--x:13%}
+.note[data-tape="up"] .t2{--x:85%}

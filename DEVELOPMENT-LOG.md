@@ -132,3 +132,28 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - **Colours.** Any `#rrggbb` ink is accepted (server, Python server and client). The five inks stay as they were; one extra circle opens a menu with 13 more colours, a picker, and colours you saved on this device (`duet-colors` in local storage).
 - **Nibs.** Pencil is graphite grain from a seeded tile (the same on every device) with a denser centre. The marker is a chisel highlighter: a nib at 35 degrees, thick across and thin along, flat ends, multiply blending and a single fill so it never darkens itself. Notes drawn earlier with these tools now show the new look. The size preview draws with the real nib at the real on-page size.
 - Tests: `worker/fill-test.mjs` (fill module) and `worker/features-test.mjs` (colours, fills, the one-request drawing endpoint) were added to `npm test`.
+
+## Private drafts
+- Migration 0005 adds `drafts` and `draft_chunks`. A draft belongs to the person who saved it: only they can list, open, copy, bin or restore it, on any of their devices. Sticking it posts a note and removes the draft.
+- Saves are chunked like note uploads (`POST /api/drafts`, one chunk per request, the last one commits). The commit is a conditional UPDATE on `rev`, so a stale save from another device gets a 409 and the client keeps it as a copy; nothing is overwritten. Repeating the same save is a no-op.
+- Binned drafts are kept 7 days (`GET /api/drafts?deleted=1`, `/restore`). Abandoned chunk sets are swept after a day. 24 drafts per person.
+- The note poll (`/api/notes?after=`) carries `drafts:{n,t}` for your own drafts, so the Drafts badge updates with no extra request.
+- Client: `public/drafts.js`, hand-drawn Drafts button and shelf (taped cards with JPEG thumbnails), name field and Save draft in the editor, autosave to the server 6 s after a change and on close. The copy in IndexedDB is a crash buffer for unsent edits.
+- The `?dev=1` preview has an in-memory shelf; the Python server has no drafts (like text and fill).
+- Tests: `worker/drafts-test.mjs` (11, in `npm test`), plus a headless-browser pass of draw, save, shelf, reopen.
+
+## New animal art
+- Hand-drawn PNGs replaced the SVG animals in four slots, as WebP with transparency: `cat.webp` (lying on the PROJECT wordmark, header and entry screens), `deer.webp` (entry meadow), `deer-seat.webp` (ChatChan's wall, on the supplied grass bank), `cat-seat.webp` (Aryan's wall, on the brick wall with torn left, right and bottom edges).
+- Each was cropped to the subject and fitted to the old SVG's viewBox and contact line, so the existing CSS positions still work. `room.js` now rewrites `.svg` and `.webp` names, so rooms that swap animals keep working.
+- The old animal SVGs are still in `assets/` (portraits, favicons and the `-still` variants are unchanged and still used).
+
+## Portraits, favicons, wall cat
+- `portrait-cat.webp` and `portrait-deer.webp` replace the SVG portraits (choose cards, identity avatar, dev pages).
+- `favicon-cat.png` and `favicon-deer.png` (128 px, head on a round badge) replace the per-person SVG favicons; `updateFavicon()` sets the right type. The generic `favicon.svg` is still used before a person is chosen.
+- `cat-seat.webp` is now cut straight from the supplied wall image (its drawn fuzzy edges kept; the thin top line outside the wall removed).
+- `cat.webp` (header) sits 20 units further right so the tail hangs from the T.
+
+## Tape
+- Four hand-drawn rolls (`assets/tape-red|yellow|blue|green.webp`) and five layouts, chosen from the note's nonce so both people see the same: 0 two pieces on opposite corners, 1 two on the top corners, 2 one strip across the top middle, 3 one long piece across the top-right corner, 4 two upright pieces over the top edge. One roll per note. `addTapes()` in `app.js` and the `data-tape` rules at the end of `style.css`; each piece is centred on `--x/--y` and turned by `--r`. Draft cards use the same function.
+- The old tape SVGs remain only for the `/dev` pages. The entry card uses the yellow roll.
+- Page-curl corners from the reference sheet are not implemented.

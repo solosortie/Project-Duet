@@ -5,7 +5,7 @@
   if (path.length > 1 && /^\/[a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?\/$/.test(path)) { location.replace(path.slice(0, -1) + location.search); return; }
   var m = path.match(/^\/([a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?)$/);
   var slug = m && m[1];
-  var SCRIPTS = ['/drawing-store.js', '/fill.js', '/app.js', '/ambience.js', '/export.js'];
+  var SCRIPTS = ['/drawing-store.js', '/fill.js', '/app.js', '/drafts.js', '/ambience.js', '/export.js'];
   function start() {
     SCRIPTS.forEach(function (src) { var s = document.createElement('script'); s.src = src; s.async = false; document.body.appendChild(s); });
     document.documentElement.classList.remove('room-wait');
@@ -28,10 +28,10 @@
       ['aria-label', 'title', 'alt'].forEach(function (a) { var v = el.getAttribute(a); if (v && /Aryan Chan|ChatChan/.test(v)) el.setAttribute(a, swapName(v, names)); });
     });
     document.querySelectorAll('img[src^="assets/"]').forEach(function (img) {
-      var mm = img.getAttribute('src').match(/^assets\/(portrait-|favicon-)?(cat|deer)((?:-[a-z]+)*)\.svg$/);
+      var mm = img.getAttribute('src').match(/^assets\/(portrait-|favicon-)?(cat|deer)((?:-[a-z]+)*)\.(svg|webp)$/);
       if (!mm) return;
       var animal = animals[mm[2] === 'cat' ? 'aryan' : 'chat'];
-      img.setAttribute('src', 'assets/' + (mm[1] || '') + animal + mm[3] + '.svg');
+      img.setAttribute('src', 'assets/' + (mm[1] || '') + animal + mm[3] + '.' + mm[4]);
       var alt = img.getAttribute('alt'); if (alt) img.setAttribute('alt', alt.replace(/\b(deer|cat)\b/i, animal));
     });
     document.title = names.aryan + ' & ' + names.chat + ' · Project Duet';

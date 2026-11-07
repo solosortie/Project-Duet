@@ -3,6 +3,7 @@
 import { uploadPost, streakState } from './drawing-api.js';
 import { validateNote } from './validate.js';
 import { reply, sha256, safeEqual, newToken, noteJson, dbNonce, tzOffsetSeconds } from './util.js';
+import { draftsGet, draftsPost, draftStamp } from './drafts-api.js';
 import { getRoom, homeSlug, roomInfo, slugCheck, createRoom, adminRoute, slugShape, cookieName, SLUG_HEADER } from './rooms.js';
 
 const DEFAULT_MAX_BODY = 600000; // the Python server's limit; wrangler.jsonc lowers it for the free plan's 10 ms CPU cap
@@ -75,6 +76,7 @@ async function handleGet(url, session, env) {
     const row = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format=4 JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND d.part=? AND u.room_id=?").bind(bits[3], Number(bits[4]), rid).first();
     return row ? new Response('{"drawing":' + row.data + '}', { status: 200, headers: keep }) : reply(404, { error: 'Drawing not found.' });
   }
+  if (url.pathname === '/api/drafts' || url.pathname.startsWith('/api/drafts/')) return draftsGet(url, session, env);
   if (url.pathname !== '/api/notes') return reply(404, { error: 'Not found.' });
   const q = url.searchParams;
   const incremental = q.has('after');
@@ -88,7 +90,8 @@ async function handleGet(url, session, env) {
     ? 'SELECT * FROM notes WHERE room_id=? AND id>? ORDER BY id ASC LIMIT 41'
     : 'SELECT * FROM notes WHERE room_id=? AND id<? ORDER BY id DESC LIMIT 41';
   const { results } = await env.DB.prepare(sql).bind(rid, cursor).all();
-  return reply(200, `{"notes":[${results.slice(0, 40).map(noteJson).join(',')}],"more":${results.length > 40}}`);
+  const stamp = incremental ? `,"drafts":${JSON.stringify(await draftStamp(env, rid, session.person).catch(() => null))}` : '';
+  return reply(200, `{"notes":[${results.slice(0, 40).map(noteJson).join(',')}],"more":${results.length > 40}${stamp}}`);
 }
 
 async function handleUnlock(request, data, env, secure, slug) {
@@ -181,6 +184,7 @@ async function handlePost(request, url, env, ctx, slug) {
     const out = await uploadPost(url.pathname, data, session.person, env, room);
     return reply(out.status, out.data);
   }
+  if (url.pathname === '/api/drafts' || url.pathname.startsWith('/api/drafts/')) return draftsPost(url.pathname, data, session, env);
   if (url.pathname === '/api/notes') return handleNote(data, session, env);
   return reply(404, { error: 'Not found.' });
 }

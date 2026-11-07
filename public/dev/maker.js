@@ -80,7 +80,7 @@
   /* ---- cards ---- */
   function tag(p) {
     var d = S[p], other = ANIMALS.filter(function (x) { return x !== d.an; })[0];
-    return '<div class="tg"><button class="pt" data-p="' + p + '" aria-label="' + d.an + '. Tap to change to ' + other + '."><img alt="" src="/assets/portrait-' + d.an + '.svg"><span class="sw">' + I.swap + '</span></button>'
+    return '<div class="tg"><button class="pt" data-p="' + p + '" aria-label="' + d.an + '. Tap to change to ' + other + '."><img alt="" src="/assets/portrait-' + d.an + '.webp"><span class="sw">' + I.swap + '</span></button>'
       + '<input class="f nm" id="n' + p + '" aria-label="' + (p === 'a' ? 'Your name' : 'Their name') + '" placeholder="' + (p === 'a' ? 'you' : 'them') + '" maxlength="20" autocomplete="off" value="' + esc(d.n) + '"></div>';
   }
   function body() {
@@ -106,7 +106,7 @@
     document.querySelectorAll('.pt').forEach(function (b) {
       b.onclick = function () {
         var d = S[b.dataset.p]; d.an = ANIMALS.filter(function (x) { return x !== d.an; })[0];
-        b.querySelector('img').src = '/assets/portrait-' + d.an + '.svg';
+        b.querySelector('img').src = '/assets/portrait-' + d.an + '.webp';
         var other = ANIMALS.filter(function (x) { return x !== d.an; })[0]; b.setAttribute('aria-label', d.an + '. Tap to change to ' + other + '.'); keep();
       };
     });
