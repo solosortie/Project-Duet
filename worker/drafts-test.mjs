@@ -115,6 +115,14 @@ test('copy, bin, restore and stuck', async () => {
   assert.equal((await a.req('/api/drafts/' + id)).status, 200);
   await a.req('/api/drafts/delete', { id, stuck: true });
   assert.equal((await a.req('/api/drafts?deleted=1')).json.drafts.some((d) => d.id === id), false, 'stuck drafts are gone for good');
+  // deleting forever from the bin: only the owner can, and nothing is left behind
+  const gone = hex();
+  await a.req('/api/drafts', save(gone, { title: 'bye' }));
+  await a.req('/api/drafts/delete', { id: gone });
+  await b.req('/api/drafts/delete', { id: gone, forever: true });
+  assert.ok((await a.req('/api/drafts?deleted=1')).json.drafts.some((d) => d.id === gone), 'another person cannot delete it');
+  assert.equal((await a.req('/api/drafts/delete', { id: gone, forever: true })).status, 200);
+  assert.equal((await a.req('/api/drafts?deleted=1')).json.drafts.some((d) => d.id === gone), false, 'deleted forever is gone from the bin');
 });
 
 test('the note poll carries only your own drafts stamp', async () => {

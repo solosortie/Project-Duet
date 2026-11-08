@@ -62,13 +62,13 @@ main{width:min(1200px,90%);margin:auto;padding-bottom:100px}
 .wall[data-owner=chat] .wall-heading img{bottom:-13px;width:210px}
 .notes{padding:47px 11px 0}
 .note{--paper-color:var(--cream);position:relative;isolation:isolate;margin:0 0 43px;padding:24px 21px 13px;transform:rotate(-1deg);filter:drop-shadow(2px 4px 3px #70532713);animation:arrive .35s ease-out}
-.note:before{content:'';position:absolute;inset:0;z-index:-1;background:var(--paper-color);clip-path:polygon(.3% 1%,16% .3%,35% .7%,57% 0,78% .5%,99% .2%,99.6% 17%,99.1% 43%,100% 67%,99.4% 98.5%,81% 99.1%,64% 98.7%,43% 100%,22% 99.2%,.6% 99.7%,0 74%,.5% 55%,0 33%)}
+.note:before{content:'';position:absolute;inset:0;z-index:-1;background:var(--paper-color);clip-path:polygon(.2% .8%,6% .5%,12% .7%,19% .3%,27% .6%,35% .3%,44% .6%,53% .2%,62% .5%,70% .2%,79% .5%,88% .3%,94% .6%,99.8% .3%,99.6% 7%,99.9% 15%,99.5% 24%,99.8% 33%,99.4% 43%,99.8% 53%,99.5% 63%,99.9% 72%,99.5% 82%,99.8% 91%,99.5% 99.4%,93% 99.7%,86% 99.3%,78% 99.7%,70% 99.4%,61% 99.8%,52% 99.4%,43% 99.8%,34% 99.4%,25% 99.7%,16% 99.3%,8% 99.7%,.4% 99.4%,.1% 91%,.5% 82%,.1% 72%,.4% 62%,.1% 52%,.5% 42%,.1% 32%,.4% 22%,.1% 12%)}
 .note:nth-child(3n+2){transform:rotate(1.1deg)}
 .note:nth-child(3n){transform:rotate(-.4deg)}
 .note canvas{display:block;width:100%;height:auto}
 .note p{white-space:pre-wrap;overflow-wrap:anywhere;font:26px/1.45 'Duet Script',cursive;margin:0 0 15px}
 .note time{display:block;text-align:right;font-size:10px;color:#8e7b61;margin-top:13px}
-.cream{--paper-color:#fff6e5}
+.cream{--paper-color:#ffffff}
 .rose{--paper-color:#efd2bd}
 .sage{--paper-color:#dce1c6}
 .blue{--paper-color:#d9e3e2}
@@ -456,13 +456,6 @@ body[data-view=walls] .walls-bg{display:block}
 .wb-clouds.a{top:34px;height:180px;background-size:1200px 180px;animation:wb-drift 220s linear infinite}
 .wb-clouds.b{top:120px;height:150px;background-size:1000px 150px;opacity:calc(var(--cloud-op)*.55);animation:wb-drift 340s linear infinite reverse}
 .wb-hills{left:0;right:0;bottom:0;height:clamp(96px,17vh,160px);filter:var(--hills-filter);transition:filter 1s}
-.wb-hills i{position:absolute;inset:0;background:url(assets/meadow-hills.svg) bottom/100% 100% no-repeat}
-.wb-hills i.back{transform:scaleX(-1) translateY(-26%);opacity:.5;height:125%;top:auto;bottom:0}
-.wb-hills img{position:absolute;bottom:4px;opacity:.95}
-.wb-hills .s1{left:6%;width:46px}
-.wb-hills .s2{left:33%;width:32px;bottom:10px}
-.wb-hills .s3{left:61%;width:34px;bottom:8px}
-.wb-hills .s4{left:89%;width:28px;bottom:6px}
 
 @keyframes wb-drift{to{background-position-x:-1200px}}
 
@@ -600,7 +593,7 @@ body[data-celestial=moon] .celestial{left:94%}
 @media(prefers-reduced-motion:reduce){.entry-backdrop .clouds,.entry-backdrop .sky:after,#streak img,.day-clock.renewed,#streak-scene,#streak-scene img,#streak-scene span{animation:none}
 #streak-scene img{width:90px}}
 .day-clock{border:0;border-radius:0;background:none!important;box-shadow:none!important;padding:0}
-#clock-face>path:first-child{stroke-width:2.4;stroke:#78553d;fill:var(--clock-paper,#fff6e5);transition:fill .6s,stroke .6s}
+
 body[data-streak=complete]{--clock-paper:#f2e6bc}
 body[data-streak=renew]{--clock-paper:#edf0d8}
 body[data-streak=broken]{--clock-paper:#e9e5dc}
@@ -887,3 +880,125 @@ canvas.ed-sample{display:block;width:100%;height:56px}
 .note[data-tape="up"] .tape{--k:.9;--y:0px;--r:90deg}
 .note[data-tape="up"] .t1{--x:13%}
 .note[data-tape="up"] .t2{--x:85%}
+
+
+/* ===== Pages that feel like paper, and a paper choice that matters ===== */
+/* Notes wear the paper they were written on (tiles generated in app.js and handed over as --tex-*), with a faint light-to-shade falloff. */
+.note.cream:before,.draft-card.cream{background-image:var(--tex-cream,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
+.note.rose:before,.draft-card.rose{background-image:var(--tex-rose,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
+.note.sage:before,.draft-card.sage{background-image:var(--tex-sage,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
+.note.blue:before,.draft-card.blue{background-image:var(--tex-blue,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
+/* The editor's page: a clear edge and two sheets showing underneath, so it reads as a page lying on the desk. */
+.editor-paper{border:1.5px solid #b9a27a;border-radius:3px;box-shadow:2px 3px 0 -1px #e9dcc0,2px 3px 0 0 #cdb68e,5px 7px 0 -2px #ddcdab,5px 7px 0 -1px #cdb68e,0 14px 26px #5947392e}
+/* Nibs: what the pointer will leave behind, at its true size. */
+.nib{position:fixed;z-index:1;pointer-events:none;transform:translate(-50%,-50%);border:1px solid #594739cc;box-sizing:border-box}
+.nib-pencil,.nib-ink{border-radius:50%;background:color-mix(in srgb,var(--nib) 32%,transparent)}
+.nib-pencil{border-style:dotted}
+.nib-marker{border-radius:1px;background:color-mix(in srgb,var(--nib) 30%,transparent)}
+#drawing.nibbed{cursor:none}
+
+/* ===== Draft shelf: each draft is a bordered sheet; deleting forever ===== */
+.draft-card{position:relative;margin:0;padding:10px 10px 6px;gap:6px;background:var(--paper-color,#fff6e5);border:2px solid #594739;border-radius:6px 9px 6px 8px;box-shadow:3px 4px 0 #59473922;color:var(--cocoa);transform:none}
+.draft-card:before{content:none}
+.draft-card .draft-thumb{border:1.5px solid #59473955;border-radius:3px}
+.draft-name{margin-top:6px;font-size:22px}
+.bin-acts{display:flex;gap:2px}
+.bin-row .forever.sure{background:#a65f4c;color:#fff6e5;border-radius:50%}
+.bin-row .forever svg{stroke:currentColor}
+
+/* ===== Editor on a phone: everything within reach, nothing to scroll ===== */
+@media(max-width:760px),(max-width:1000px) and (orientation:portrait){
+  .ed-head{padding:6px 10px;min-height:56px}
+  .ed-head h1{font-size:19px}.ed-status{margin-left:auto;font-size:11.5px}
+  .ed-body{display:flex;flex-direction:column;gap:6px;padding:6px 12px 8px;overflow:auto}
+  .ed-main{flex:0 0 auto;order:1}
+  .ed-sheet{width:min(100%,calc((100dvh - 372px) * 1.3889));min-width:min(100%,260px)}
+  .ed-bar{min-height:40px;margin:0 0 4px}.ed-history .icon-button{width:40px;height:40px}
+  .editor-paper{margin-inline:0;border-radius:3px}
+  .ed-rail{order:2;gap:4px}
+  .ed-tools{gap:5px}.ed-tool{min-height:50px;gap:2px;padding:4px 0}.ed-tool svg{width:22px;height:22px}
+  /* size, ink and paper each sit on one line: a short label, then the control */
+  .ed-opts{display:flex;align-items:center;gap:10px;min-height:42px}
+  .ed-opts>.ed-label{flex:0 0 auto;width:auto;min-width:44px;margin:0;display:flex;gap:6px}
+  .ed-opts>.ed-label label{white-space:nowrap}
+  .ed-opts input[type=range]{flex:1;height:36px;min-width:0}
+  #opts-draw .ed-sample{display:none}
+  .ed-opts .ed-swatches{flex-wrap:nowrap;gap:7px;flex:1}
+  .ed-swatch{width:34px;height:34px}
+  .ed-paper{border-radius:8px}
+  .ed-ink{position:relative}
+  #opts-text .ed-sizes{flex:1}
+  .ed-foot{padding:8px 12px}.ed-actions .paper-button{min-height:44px}
+}
+@media(max-width:760px) and (max-height:640px){.ed-sheet{width:min(100%,calc((100dvh - 330px) * 1.3889))}}
+@media(max-width:760px),(max-width:1000px) and (orientation:portrait){
+  .ed-actions{gap:8px}.ed-actions>*{flex:1 1 0;min-width:0;padding-inline:6px;letter-spacing:0;line-height:1.15;text-align:center}
+  .ed-actions .paper-button span{white-space:normal}
+}
+
+/* ===== The clock, drawn by hand: a wobbly doubled outline, uneven ticks, tapered brush hands ===== */
+#clock-face{fill:none;stroke:var(--cocoa);stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+#clock-face .clock-shadow{fill:#59473918;stroke:none}
+#clock-face .clock-rim{fill:var(--clock-paper,#fff6e5);stroke:#594739;stroke-width:2.1;transition:fill .6s}
+#clock-face .clock-wash{fill:#dba654;opacity:.16;stroke:none}
+body[data-streak=renew] #clock-face .clock-wash{fill:#66745a;opacity:.14}
+body[data-streak=broken] #clock-face .clock-wash{fill:#85745f;opacity:.12}
+#clock-face .clock-rim2{stroke:#594739;stroke-width:.9;opacity:.5}
+#clock-face .clock-ticks{stroke:#594739;stroke-width:1.5;opacity:.85}
+#clock-face #hour-hand{fill:#594739;stroke:#594739;stroke-width:1.1}
+#clock-face #minute-hand{fill:#594739;stroke:#594739;stroke-width:.8}
+#clock-face .clock-pin{fill:#dba654;stroke:#594739;stroke-width:1.2}
+
+/* Editor text in the hand-lettered face used for the wall's headings. */
+#editor-title,.ed-status,.ed-label,.ed-label label,.ed-label output,.ed-hint,.ed-tool,.ed-size small,.preview-label,.ed-error,.ed-swatches+.ed-label{font-family:'Duet Text',sans-serif;font-weight:400}
+#editor-title{font-size:26px;letter-spacing:.02em}
+.ed-status{font-size:14px;letter-spacing:.02em}
+.ed-label{font-size:15px;letter-spacing:.03em}
+.ed-tool{font-size:13px;letter-spacing:.02em}
+.ed-hint{font-size:15px;letter-spacing:.03em}
+@media(max-width:760px),(max-width:1000px) and (orientation:portrait){#editor-title{font-size:19px}.ed-status{font-size:12px}.ed-tool{font-size:11.5px;letter-spacing:0}}
+
+@media(max-width:760px),(max-width:1000px) and (orientation:portrait){#editor-title{letter-spacing:0;font-size:18px}.ed-status{letter-spacing:0;font-size:11px}.ed-head{gap:6px}}
+#clock-face .clock-wash2{fill:#dba654;opacity:.12;stroke:none}
+#clock-face .clock-rim2{opacity:.55;stroke-width:1}
+
+/* ===== Clouds: three layers of hand-drawn sprites (built by clouds.js), drifting in one wind at three speeds ===== */
+.entry-backdrop .clouds,.wb-clouds{display:none}
+.entry-backdrop .sky:after{content:none}
+.cloud-field{position:absolute;inset:0;overflow:hidden;pointer-events:none;filter:var(--cloud-filter);opacity:var(--cloud-op,1);transition:filter 1s,opacity 1s}
+.entry-backdrop .cloud-field{inset:0 0 30% 0}
+.cloud-layer{position:absolute;inset:0;will-change:transform;opacity:var(--layer-alpha,1)}
+.cloud{position:absolute;left:0;animation:cloud-drift var(--dur,240s) linear var(--delay,0s) infinite;will-change:transform}
+.cloud img{display:block;width:100%;height:auto;animation:cloud-bob var(--bob,8s) ease-in-out infinite alternate}
+.cloud-layer.far img{filter:saturate(.8)}
+@keyframes cloud-drift{from{transform:translate3d(-100%,0,0)}to{transform:translate3d(100vw,0,0)}}
+@keyframes cloud-bob{from{transform:translateY(-3px)}to{transform:translateY(4px)}}
+@media(prefers-reduced-motion:reduce){.cloud,.cloud img{animation:none}.cloud{left:calc(var(--rest,30%))}}
+
+/* ===== Landscape: three hand-drawn hill layers (tiled, each shifted so the pattern never lines up), grass, and the three meadow flowers ===== */
+.wb-hills{height:clamp(120px,20vh,190px)}
+.wb-hills i,.meadow-hills i{position:absolute;left:-24px;right:-24px;bottom:0;background-repeat:repeat-x;background-size:auto 100%;will-change:transform}
+.wb-hills i.far,.meadow-hills i.far{height:100%;background-image:url(assets/hills-far.svg);background-position:0 100%}
+.wb-hills i.mid,.meadow-hills i.mid{height:84%;background-image:url(assets/hills-mid.svg);background-position:-460px 100%}
+.wb-hills i.near{height:64%;background-image:url(assets/hills-near.svg);background-position:-900px 100%}
+.wb-flowers{position:absolute;inset:0;will-change:transform}
+.f{position:absolute;width:var(--w,32px);height:auto;transform-origin:50% 100%;animation:sway 7s ease-in-out infinite alternate;pointer-events:none}
+.wb-flowers .f{bottom:calc(var(--lift,10px))}
+.wb-flowers .f:nth-child(odd){--lift:7px}.wb-flowers .f:nth-child(3n){--lift:14px}.wb-flowers .f:nth-child(4n){--lift:11px}
+.f1{animation-duration:6.2s}.f2{animation-duration:7.4s;animation-delay:-2s}.f3{animation-duration:8.1s;animation-delay:-4s}.f4{animation-duration:6.8s;animation-delay:-1s}.f5{animation-duration:7.8s;animation-delay:-3s}.f6{animation-duration:6.5s;animation-delay:-5s}.f7{animation-duration:7.2s;animation-delay:-2.5s}.f8{animation-duration:8.4s;animation-delay:-1.5s}.f9{animation-duration:6.9s;animation-delay:-3.5s}
+@keyframes sway{from{transform:rotate(-1.8deg)}to{transform:rotate(1.8deg)}}
+@media(prefers-reduced-motion:reduce){.f{animation:none}}
+/* entry: the old brown soil is replaced by grass */
+.entry-backdrop .ground-layer{background-color:transparent;background-image:url(assets/ground.svg),linear-gradient(#788a5b,#788a5b);background-repeat:repeat-x,no-repeat;background-position:left top,left bottom;background-size:auto 160px,100% calc(100% - 150px)}
+.entry-backdrop .meadow-hills{position:absolute;left:0;bottom:100%;width:100%;height:clamp(70px,13vh,125px);margin-bottom:-1px;overflow:hidden}
+.entry-flowers{position:absolute;left:0;right:0;top:0;height:0}
+.entry-flowers .f{bottom:-30px}
+.entry-flowers .f1{right:9%;width:38px}.entry-flowers .f2{right:14%;width:34px}.entry-flowers .f3{right:5%;width:46px}
+@media(max-width:620px){.entry-flowers .f1{width:30px;right:6%}.entry-flowers .f2{width:27px;right:17%}.entry-flowers .f3{width:36px;right:26%}.entry-flowers .f{bottom:-24px}}
+
+/* Passing messages: one small quiet slip, nothing more. */
+#toast{width:max-content;max-width:min(86vw,340px);inset:auto auto max(26px,env(safe-area-inset-bottom)) 50%;margin:0;overflow:visible;padding:9px 16px;border:1.5px solid #cdb68e;border-radius:6px;background:#fff6e5;color:var(--cocoa);font:400 15px/1.3 'Duet Text',sans-serif;text-align:center;translate:0 8px;transition:opacity .2s,translate .2s;z-index:2147483000}
+#toast.warn{border-color:#a65f4c;color:#8a4a3a}
+#toast.show{opacity:1;translate:0 0}
+/* Inline notes beside the buttons that caused them */
+.error,#drafts .error{font:15px/1.4 'Duet Text',sans-serif;color:#a65f4c}

@@ -31,6 +31,8 @@ function validDrawing(drawing) {
     }
     if (tool === 'erase') {
       if (!isInt(s.width) || s.width < 8 || s.width > 100) return false;
+    } else if (tool === 'marker') {   // the dry marker is a wide brush
+      if (!isInt(s.width) || s.width < 1 || s.width > 60) return false;
     } else if (tool !== 'text') {
       if (!isInt(s.width) || s.width < 1 || s.width > 28) return false;
     } else if (!isInt(s.width) || s.width < 1 || s.width > 28) {

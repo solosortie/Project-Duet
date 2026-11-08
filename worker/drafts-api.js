@@ -88,7 +88,7 @@ export async function draftsPost(path, data, session, env) {
   if (path === '/api/drafts/delete') {
     const row = await readRow(env, id, rid, me);
     if (!row) return reply(200, { ok: true });
-    if (data.stuck === true) {   // it became a note: nothing to keep
+    if (data.stuck === true || data.forever === true) {   // it became a note, or was deleted for good: nothing to keep
       await env.DB.batch([env.DB.prepare('DELETE FROM draft_chunks WHERE draft=?').bind(id), env.DB.prepare('DELETE FROM drafts WHERE id=?').bind(id)]);
     } else {
       await env.DB.prepare('UPDATE drafts SET deleted=?, updated=? WHERE id=? AND deleted IS NULL').bind(now, now, id).run();

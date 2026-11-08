@@ -24,6 +24,8 @@ def packed_valid(items):
         tool=s.get('tool')
         if tool=='erase':
             if type(s.get('width')) is not int or not 8<=s['width']<=100:return False
+        elif tool=='marker':
+            if type(s.get('width')) is not int or not 1<=s['width']<=60:return False
         elif tool!='text' and (type(s.get('width')) is not int or not 1<=s['width']<=28):return False
         if tool=='text':
             pts=s.get('points')

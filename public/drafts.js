@@ -26,7 +26,7 @@ const Shelf=(()=>{
  function thumbnail(drawing,paper){
   const src=document.createElement('canvas');src.width=1000;src.height=720;drawStrokes(src,drawing);
   const out=document.createElement('canvas');out.width=320;out.height=230;const c=out.getContext('2d');
-  c.fillStyle=PAPER_HEX[paper]||PAPER_HEX.cream;c.fillRect(0,0,out.width,out.height);c.drawImage(src,0,0,out.width,out.height);
+  paintPaper(c,out.width,out.height,paper);c.drawImage(src,0,0,out.width,out.height);
   let q=.72,url=out.toDataURL('image/jpeg',q);while(url.length>23000&&q>.3){q-=.12;url=out.toDataURL('image/jpeg',q)}
   return url.startsWith('data:image/jpeg')&&url.length<=23000?url:undefined;
  }
@@ -59,37 +59,37 @@ const Shelf=(()=>{
      // The draft was changed or removed from another device since this page was loaded. Nothing is overwritten: this version becomes its own draft.
      const copyId=hex();
      meta=await push({id:copyId,base:0,title:((draftTitle||'Untitled')+' (mine)').slice(0,60),paper:comp.paper,nonce:hex(),drawing:comp.drawing});
-     await Drafts.remove(draftKey()).catch(()=>{});draftId=meta.id;toast(e.code==='draft_conflict'?'A newer version was saved elsewhere, so this one was kept as a copy.':'That draft was removed, so this one was kept as a new one.');
+     await Drafts.remove(draftKey()).catch(()=>{});draftId=meta.id;toast(e.code==='draft_conflict'?'A newer one exists, yours kept as a copy':'The original is gone, yours kept as new',1);
     }
     if(fresh){await Drafts.remove(oldKey).catch(()=>{})}
     draftId=meta.id;draftBase=meta.rev;nonce=comp.nonce;
     if(editCount===marker)savedCount=marker;
-    $('#post-error').textContent='';status('Saved to drafts · '+ago(meta.updated));refresh();
-    if(!quiet&&fresh)toast('Saved to drafts');
+    $('#post-error').textContent='';status('Saved · '+ago(meta.updated));refresh();
+    if(!quiet&&fresh)toast('Tucked into drafts');
     flushDraft();
    }catch(e){
-    status(e.code==='shelf_full'?'Not saved · shelf is full':'Not saved yet · kept on this device');
+    status(e.code==='shelf_full'?'Shelf is full':'Not saved · kept here');
     if(!quiet)$('#post-error').textContent=e.message;
     throw e;
    }finally{saving=null;if(again){again=false;queue()}}
   })();
   return saving;
  }
- function queue(){if(!draftId||!$('#editor').open)return;status('Unsaved changes');clearTimeout(timer);timer=setTimeout(()=>saveNow(true).catch(()=>{}),AUTOSAVE_MS)}
+ function queue(){if(!draftId||!$('#editor').open)return;status('Unsaved');clearTimeout(timer);timer=setTimeout(()=>saveNow(true).catch(()=>{}),AUTOSAVE_MS)}
  // Leaving the editor: send anything unsent. A failure is fine; the edits stay on this device and come back when the draft is reopened.
  async function leave(){
   clearTimeout(timer);
-  if(draftId&&editCount!==savedCount){try{await saveNow(true)}catch{toast('Could not reach the shelf. Your changes are kept on this device.')}}
+  if(draftId&&editCount!==savedCount){try{await saveNow(true)}catch{toast('Shelf unreachable, kept here for now',1)}}
   if(saving)try{await saving}catch{/* handled above */}
  }
  function stuck(id){clearTimeout(timer);rawApi('drafts/delete',{id,stuck:true}).then(refresh).catch(()=>{});Drafts.remove(draftKey()).catch(()=>{})}
  // Edits found on this device that no longer fit the server's version: keep them as a draft of their own, then load the server's.
  async function forkLocal(local,sd){
-  try{await push({id:hex(),base:0,title:((local.title||sd.title||'Untitled')+' (mine)').slice(0,60),paper:local.paper||sd.paper,nonce:hex(),drawing:local.strokes||local.drawing||[]});await Drafts.remove(draftKey()).catch(()=>{});toast('Your unsaved edits were kept as a separate draft.');refresh()}
-  catch{toast('Opened the saved version. Your unsaved edits are still on this device.')}
+  try{await push({id:hex(),base:0,title:((local.title||sd.title||'Untitled')+' (mine)').slice(0,60),paper:local.paper||sd.paper,nonce:hex(),drawing:local.strokes||local.drawing||[]});await Drafts.remove(draftKey()).catch(()=>{});toast('Your edits became their own draft');refresh()}
+  catch{toast('Opened the saved one, your edits are kept here',1)}
  }
 
- const began=()=>{clearTimeout(timer);if(draftId){status('Saved to drafts');if(editCount!==savedCount)queue()}else status('Draft saved on this device')};
+ const began=()=>{clearTimeout(timer);if(draftId){status('Saved');if(editCount!==savedCount)queue()}else status('Auto-saved')};
  const ended=()=>clearTimeout(timer);
 
  // ---- opening ----
@@ -103,13 +103,14 @@ const Shelf=(()=>{
  }
 
  // ---- the shelf ----
- function card(d,i){
-  const a=document.createElement('article');a.className='note draft-card '+d.paper;addTapes(a,parseInt(d.id.slice(0,8),16));
-  const b=document.createElement('button');b.type='button';b.className='draft-open';b.setAttribute('aria-label','Open draft '+(d.title||'without a name'));
+ function card(d){
+  const a=document.createElement('article');a.className='draft-card '+d.paper;
+  const b=document.createElement('button');b.type='button';b.className='draft-open';b.setAttribute('aria-label','Open draft saved '+ago(d.updated));
   const img=document.createElement('img');img.className='draft-thumb';img.alt='';if(d.thumb)img.src=d.thumb;else img.hidden=true;
-  const name=document.createElement('strong');name.className='draft-name';name.textContent=d.title||'Untitled';
   const meta=document.createElement('span');meta.className='draft-meta';meta.textContent='Saved '+ago(d.updated);
-  b.append(img,name,meta);b.onclick=()=>open(d.id);a.append(b);
+  b.append(img);
+  if(d.title){const name=document.createElement('strong');name.className='draft-name';name.textContent=d.title;b.append(name)}   // drafts named before naming was removed keep their name
+  b.append(meta);b.onclick=()=>open(d.id);a.append(b);
   const row=document.createElement('div');row.className='draft-actions';
   row.append(tool('i-copy','Make a copy',()=>copyDraft(d.id)),tool('i-trash','Delete draft',()=>remove(d.id)));a.append(row);return a;
  }
@@ -118,12 +119,18 @@ const Shelf=(()=>{
   grid.replaceChildren(...list.map(card));empty.hidden=list.length>0;
   const t=$('#bin-toggle');t.hidden=false;
  }
- async function copyDraft(id){try{await rawApi('drafts/copy',{id});toast('Copy added to the shelf');refresh()}catch(e){err.textContent=e.message}}
- async function remove(id){try{await rawApi('drafts/delete',{id});list=list.filter(d=>d.id!==id);badge(list.length);draw();toast('Moved to recently deleted');if(binOpen)loadBin()}catch(e){err.textContent=e.message}}
+ async function copyDraft(id){try{await rawApi('drafts/copy',{id});toast('Copy made');refresh()}catch(e){err.textContent=e.message}}
+ async function remove(id){try{await rawApi('drafts/delete',{id});list=list.filter(d=>d.id!==id);badge(list.length);draw();toast('Set aside, kept for 7 days');if(binOpen)loadBin()}catch(e){err.textContent=e.message}}
  async function loadBin(){
   try{const r=await rawApi('drafts?deleted=1');bin=r.drafts}catch{bin=[]}
-  const box=$('#bin-list');box.replaceChildren(...bin.map(d=>{const row=document.createElement('div');row.className='bin-row';const n=document.createElement('span');n.textContent=(d.title||'Untitled')+' · '+ago(d.deleted);
-   const b=tool('i-undo','Restore',async()=>{try{await rawApi('drafts/restore',{id:d.id});refresh();loadBin()}catch(e){err.textContent=e.message}});row.append(n,b);return row}));
+  const box=$('#bin-list');box.replaceChildren(...bin.map(d=>{const row=document.createElement('div');row.className='bin-row';const n=document.createElement('span');n.textContent=(d.title||'Draft')+' · '+ago(d.deleted);
+   const b=tool('i-undo','Restore',async()=>{try{await rawApi('drafts/restore',{id:d.id});toast('Back on the shelf');refresh();loadBin()}catch(e){err.textContent=e.message}});
+   // Delete forever takes two taps: the first asks, the second does it. Nothing of the draft stays on the server afterwards.
+   const gone=tool('i-trash','Delete forever',async btn=>{
+    if(!btn.classList.contains('sure')){btn.classList.add('sure');btn.title=btn.ariaLabel='Tap again to delete forever';setTimeout(()=>{btn.classList.remove('sure');btn.title='Delete forever';btn.setAttribute('aria-label','Delete forever')},3500);return}
+    try{await rawApi('drafts/delete',{id:d.id,forever:true});toast('Gone for good');loadBin()}catch(e){err.textContent=e.message}});
+   gone.classList.add('forever');
+   const acts=document.createElement('span');acts.className='bin-acts';acts.append(b,gone);row.append(n,acts);return row}));
   if(!bin.length){const p=document.createElement('p');p.className='bin-empty';p.textContent='Nothing deleted lately.';box.append(p)}
  }
  $('#bin-toggle').onclick=()=>{binOpen=!binOpen;$('#bin-toggle').setAttribute('aria-expanded',String(binOpen));$('#bin-list').hidden=!binOpen;if(binOpen)loadBin()};

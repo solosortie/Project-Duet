@@ -2,7 +2,7 @@
 (()=>{
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const NAMES={chat:'ChatChan',aryan:'Aryan Chan'};
-const PAPER={cream:'#fff6e5',rose:'#efd2bd',sage:'#dce1c6',blue:'#d9e3e2'};
+const PAPER={cream:'#ffffff',rose:'#efd2bd',sage:'#dce1c6',blue:'#d9e3e2'};
 let wallChoice='both',busy=false;
 
 const tabs=qa('.settings-tabs [data-tab]');
@@ -55,7 +55,7 @@ function notePng(n){
     if(n.format===2)compose(src,n);else drawStrokes(src,n.drawing);
     const c=cropped(src);if(!c)return resolve(null);
     const out=document.createElement('canvas');out.width=c.width;out.height=c.height;const g=out.getContext('2d');
-    g.fillStyle=PAPER[n.paper]||PAPER.cream;g.fillRect(0,0,out.width,out.height);g.drawImage(c,0,0);
+    if(typeof paintPaper==='function')paintPaper(g,out.width,out.height,n.paper);else{g.fillStyle=PAPER[n.paper]||PAPER.cream;g.fillRect(0,0,out.width,out.height)}g.drawImage(c,0,0);
     out.toBlob(async b=>resolve(b?new Uint8Array(await b.arrayBuffer()):null),'image/png');
   });
 }
