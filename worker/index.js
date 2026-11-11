@@ -2,9 +2,10 @@
 // Every room-scoped query carries room_id; room 1 is the original personal room (no header needed).
 import { uploadPost, streakState } from './drawing-api.js';
 import { validateNote } from './validate.js';
-import { reply, sha256, safeEqual, newToken, noteJson, dbNonce, tzOffsetSeconds } from './util.js';
+import { reply, sha256, safeEqual, newToken, noteJson, dbNonce, tzOffsetSeconds, hashPass, checkPass, kdfIter } from './util.js';
 import { draftsGet, draftsPost, draftStamp } from './drafts-api.js';
-import { getRoom, homeSlug, roomInfo, slugCheck, createRoom, adminRoute, slugShape, cookieName, SLUG_HEADER } from './rooms.js';
+import { guardEdge, dbLimit, dbHit, dbRefund, slow, sweep, who, wait } from './guard.js';
+import { getRoom, homeSlug, roomInfo, requestStatus, slugCheck, createRoom, setRequestNote, adminRoute, slugShape, cookieName, SLUG_HEADER } from './rooms.js';
 
 const DEFAULT_MAX_BODY = 600000; // the Python server's limit; wrangler.jsonc lowers it for the free plan's 10 ms CPU cap
 const SESSION_SECONDS = 30 * 86400;
@@ -98,19 +99,22 @@ async function handleUnlock(request, data, env, secure, slug) {
   const room = await getRoom(env, slug);
   if (!room || room.status === 'declined') return reply(404, { error: 'No such room.' });
   if (room.status !== 'live') return reply(403, { error: 'Waiting for approval.', status: room.status });
-  const ip = `${room.id}:${request.headers.get('CF-Connecting-IP') || 'local'}`;
+  const id = await who(request, env), ip = `u:${room.id}:${id}`, any = `u:*:${id}`, wall = `ur:${room.id}`;
   const now = Date.now() / 1000;
-  const r = await env.DB.prepare('SELECT count, until FROM attempts WHERE ip=?').bind(ip).first();
-  if (r && r.until > now && r.count >= 10) return reply(429, { error: 'Too many tries. Come back in ten minutes.' });
-  const given = await sha256(String(data.passphrase ?? ''));
-  let expected;
-  if (room.id === 1) expected = env.DUET_PASSPHRASE ? await sha256(String(env.DUET_PASSPHRASE)) : String(env.DUET_PASSPHRASE_SHA256 || '');
-  else expected = String(room.pass_hash || '');
-  const input = room.id === 1 ? given : await sha256(`${room.salt}:${String(data.passphrase ?? '')}`);
-  if (!expected || !safeEqual(input, expected)) {
-    const count = r && r.until > now ? r.count + 1 : 1;
-    await env.DB.prepare('INSERT OR REPLACE INTO attempts VALUES(?,?,?)').bind(ip, count, now + 600).run();
-    return reply(401, { error: 'That’s not quite it. Try again.' });
+  // A slot is reserved before the passphrase is checked, so parallel guesses all count. A few slips are fine; after that, wait.
+  // One person trying many walls is stopped sooner than one person mistyping, and one wall is capped across everyone.
+  const [a, w, all] = [await dbHit(env, ip, 600), await dbHit(env, any, 600), await dbHit(env, wall, 3600)];
+  if (a.count > 10 || w.count > 40 || all.count > 120) return slow(wait(a.count > 10 ? a : w.count > 40 ? w : all, now), 'Too many tries. Come back in ten minutes.');
+  const given = String(data.passphrase ?? '');
+  let ok;
+  if (room.id === 1) {
+    const expected = env.DUET_PASSPHRASE ? await sha256(String(env.DUET_PASSPHRASE)) : String(env.DUET_PASSPHRASE_SHA256 || '');
+    ok = !!expected && safeEqual(await sha256(given), expected);
+  } else ok = await checkPass(room.pass_hash, room.salt, given);
+  if (!ok) { await sweep(env); return reply(401, { error: 'That’s not quite it. Try again.' }); }
+  await dbRefund(env, any); await dbRefund(env, wall);
+  if (room.id !== 1 && !String(room.pass_hash).startsWith('k1:') && kdfIter(env)) {   // quietly move an older wall to the stronger hash
+    await env.DB.prepare('UPDATE rooms SET pass_hash=? WHERE id=?').bind(await hashPass(room.salt, given, kdfIter(env)), room.id).run().catch(() => {});
   }
   const token = newToken();
   await env.DB.batch([
@@ -153,6 +157,7 @@ async function handlePost(request, url, env, ctx, slug) {
   }
   const maxBody = Number(env.DUET_MAX_BODY) || DEFAULT_MAX_BODY;
   if (Number(request.headers.get('Content-Length') || 0) > maxBody) return reply(413, { error: 'This drawing is too large.' });
+  if (!/^application\/json\b/i.test(request.headers.get('Content-Type') || '')) return reply(415, { error: 'Invalid request.' });
   const body = await request.text();
   if (body.length > maxBody) return reply(413, { error: 'This drawing is too large.' });
   let data;
@@ -161,6 +166,7 @@ async function handlePost(request, url, env, ctx, slug) {
 
   const secure = url.protocol === 'https:';
   if (url.pathname === '/api/rooms') return createRoom(request, data, env, ctx);
+  if (url.pathname === '/api/request/note') return setRequestNote(request, data, env);
   const admin = await adminRoute(request, url, data, env, secure);
   if (admin) return admin;
   if (slug === null) return reply(400, { error: 'Invalid room.' });
@@ -189,15 +195,44 @@ async function handlePost(request, url, env, ctx, slug) {
   return reply(404, { error: 'Not found.' });
 }
 
-// "/" is the original wall until it is given its own address; after that it is the welcome page.
-// Anyone still holding a login from the old address is sent to the new one.
+// Three sites share this Worker. dash.<domain> is where a duet is requested, dev.<domain> is where requests are
+// reviewed, and everything else is the walls. DUET_DASH_HOST and DUET_DEV_HOST name the two subdomains; without
+// them a host starting with "dash." or "dev." is treated the same way.
+function siteOf(url, env) {
+  const h = url.hostname;
+  if ((env.DUET_DASH_HOST && h === env.DUET_DASH_HOST) || h.startsWith('dash.')) return 'dash';
+  if ((env.DUET_DEV_HOST && h === env.DUET_DEV_HOST) || h.startsWith('dev.')) return 'dev';
+  return 'root';
+}
+const LOCAL_HOST = /(?:^|\.)localhost$|^127\.0\.0\.1$|^\[::1\]$/;   // local development: the host-name rules below do not apply
+const DASH_API = new Set(['/api/rooms', '/api/request/note', '/api/slug', '/api/request', '/api/room']);
+
+// "/" on the walls host is the original wall until it is given its own address; after that it points people
+// to the dashboard. Anyone still holding a login from the old address is sent to the new one.
 async function rootPage(request, env, url) {
   const home = await homeSlug(env);
   if (home === 'home') return env.ASSETS.fetch(request);
   if (/(?:^|;\s*)duet=/.test(request.headers.get('Cookie') || '')) {
     return new Response(null, { status: 302, headers: { Location: `${url.origin}/${home}`, 'Cache-Control': 'no-store' } });
   }
-  return env.ASSETS.fetch(new Request(`${url.origin}/dev/`, request));
+  return env.ASSETS.fetch(new Request(`${url.origin}/dash/`, request));
+}
+
+// Search engines: only the dash's front page is meant to be found. The walls and the review site are private.
+function robots(open, url) {
+  const body = open
+    ? `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dash/hold/\n\nSitemap: ${url.origin}/sitemap.xml\n`
+    : 'User-agent: *\nDisallow: /\n';
+  return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+}
+function sitemap(open, url) {
+  if (!open) return reply(404, { error: 'Not found.' });
+  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url.origin}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url></urlset>\n`;
+  return new Response(body, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
+}
+function quiet(res, open) {   // everything but the dash's front page asks not to be indexed
+  if (open) return res;
+  const out = new Response(res.body, res); out.headers.set('X-Robots-Tag', 'noindex, nofollow'); return out;
 }
 
 export default {
@@ -205,8 +240,22 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === '/healthz') return reply(200, { ok: true });
-      if (url.pathname === '/') return await rootPage(request, env, url);
+      const site = siteOf(url, env);
+      // the dash's front page is public; so is the root once the original wall has moved to its own address and the dash stands in for it
+      const open = site === 'dash' || (site === 'root' && (url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml' || url.pathname === '/') && await homeSlug(env) !== 'home');
+      if (url.pathname === '/robots.txt') return robots(open, url);
+      if (url.pathname === '/sitemap.xml') return sitemap(open, url);
+      if (url.pathname === '/') {
+        if (site === 'dash') return env.ASSETS.fetch(new Request(`${url.origin}/dash/`, request));
+        if (site === 'dev') return quiet(await env.ASSETS.fetch(new Request(`${url.origin}/devsite/`, request)), false);
+        return quiet(await rootPage(request, env, url), open);
+      }
       if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
+      // each subdomain only reaches the API it needs; the review API is reachable on the dev host only
+      if (site === 'dash' && !DASH_API.has(url.pathname)) return reply(404, { error: 'Not found.' });
+      if (site === 'dev' && !url.pathname.startsWith('/api/admin/')) return reply(404, { error: 'Not found.' });
+      if (url.pathname.startsWith('/api/admin/') && env.DUET_DEV_HOST && url.hostname !== env.DUET_DEV_HOST && !LOCAL_HOST.test(url.hostname)) return reply(404, { error: 'Not found.' });
+      const limited = await guardEdge(request, url, env); if (limited) return limited;
       const slug = roomSlug(request);
       if (url.pathname === '/api/time') {
         const room = slug ? await getRoom(env, slug) : null;
@@ -214,6 +263,7 @@ export default {
       }
       if (request.method === 'GET') {
         if (url.pathname === '/api/room') return roomInfo(url.searchParams.get('slug') || 'home', env);
+        if (url.pathname === '/api/request') return requestStatus(String(url.searchParams.get('slug') || '').toLowerCase(), env);
         if (url.pathname === '/api/slug') return slugCheck(String(url.searchParams.get('slug') || '').toLowerCase(), env);
         if (url.pathname.startsWith('/api/admin/')) return (await adminRoute(request, url, null, env, url.protocol === 'https:')) || reply(404, { error: 'Not found.' });
         if (slug === null) return reply(400, { error: 'Invalid room.' });

@@ -69,7 +69,7 @@ main{width:min(1200px,90%);margin:auto;padding-bottom:100px}
 .note p{white-space:pre-wrap;overflow-wrap:anywhere;font:26px/1.45 'Duet Script',cursive;margin:0 0 15px}
 .note time{display:block;text-align:right;font-size:10px;color:#8e7b61;margin-top:13px}
 .cream{--paper-color:#ffffff}
-.rose{--paper-color:#efd2bd}
+.rose{--paper-color:#fca7a7}
 .sage{--paper-color:#dce1c6}
 .blue{--paper-color:#d9e3e2}
 .mobile-tabs{display:none}
@@ -409,7 +409,7 @@ body:is([data-view=welcome],[data-view=choose]) main{padding-bottom:100px}
 
 }
 .project-word{position:relative;display:inline-block}
-.wordmark .project-word .brand-cat{display:block;position:absolute;width:56%;height:auto;left:45%;right:auto;top:.11em;bottom:auto;transform:translateY(-64%);pointer-events:none;max-width:none}
+.wordmark .project-word .brand-cat{display:block;position:absolute;width:56%;height:auto;left:53%;right:auto;top:.11em;bottom:auto;transform:translateY(-64%);pointer-events:none;max-width:none}
 body[data-view=walls] .wordmark .brand-cat{display:none}
 body:is([data-view=welcome],[data-view=choose]){position:relative;background-color:#e4ebd7}
 body:is([data-view=welcome],[data-view=choose]) main{position:static;padding-bottom:0}
@@ -476,13 +476,13 @@ body[data-time=night][data-view=walls] .wall+.wall:before{filter:invert(1) brigh
 .export-walls button:hover{background:#f5dfb7;transform:translateY(-2px) }
 .export-walls button[aria-pressed=true]{background:#dce1c6;border-color:var(--moss)}
 .export-row{align-items:flex-start;margin-bottom:18px}
-.export-row>span{display:flex;flex-direction:column;gap:3px;min-width:0;font:19px/1.3 'Duet Text',sans-serif;letter-spacing:-.02em}
-.export-row small{font:15px/1.5 'Duet Text',sans-serif;letter-spacing:0;color:var(--muted)}
+.export-row>span{display:flex;flex-direction:column;gap:3px;min-width:0;font:19px/1.3 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:-.02em}
+.export-row small{font:15px/1.5 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:0;color:var(--muted)}
 .export-row .paper-button{flex:none;min-width:0}
-.export-status{min-height:18px;margin:4px 0 0;font:15px/1.5 'Duet Text',sans-serif;color:var(--muted)}
+.export-status{min-height:18px;margin:4px 0 0;font:15px/1.5 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;color:var(--muted)}
 .export-walls img{display:block;width:36px;height:32px;object-fit:contain}
 .export-walls .both img{width:27px;height:24px}
-.export-row .paper-button span{font:16px 'Duet Text',sans-serif;letter-spacing:-.02em}
+.export-row .paper-button span{font:16px 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:-.02em}
 .entry-backdrop .sky{background:linear-gradient(var(--sky1),var(--sky2) 85%)}
 .entry-backdrop .clouds{filter:var(--cloud-filter);opacity:var(--cloud-op)}
 .entry-backdrop .ground-layer{filter:var(--hills-filter)}
@@ -535,9 +535,9 @@ dialog{color:var(--cocoa)}
 
 @media(max-width:620px){.celestial{top:82px;width:36px}}
 @font-face{font-family:'Duet Text';src:url('assets/duet-text.ttf') format('truetype');font-display:swap}
-#settings,.wall-heading h1,#create-title,.day-clock,#streak,.paper-button{font-family:'Duet Text',sans-serif;font-weight:400}
-#settings-title,.export-row .paper-button span{font-family:'Duet Text',sans-serif;font-weight:400}
-#settings .volume-label,.settings-tabs button{font-family:'Duet Text',sans-serif;font-weight:400}
+#settings,.wall-heading h1,#create-title,.day-clock,#streak,.paper-button{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:400}
+#settings-title,.export-row .paper-button span{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:400}
+#settings .volume-label,.settings-tabs button{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:400}
 .music-panel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;margin:18px 0 24px}
 .music-caption{display:grid;gap:10px;font-size:20px}
 .music-caption #track-name{font-size:16px;line-height:1.4}
@@ -549,7 +549,7 @@ dialog{color:var(--cocoa)}
 #settings .paper-button:active,#next-track:active{transform:translateY(2px)}
 body:not([data-view=walls]) .day-clock{display:none}
 .day-clock{padding:7px 10px;border:2px solid var(--cocoa);border-radius:9px 5px 12px 7px;background:#fff6e5e8;box-shadow:3px 3px 0 #59473915;transition:background .6s,border-color .6s}
-#clock-date{color:var(--cocoa);font-family:'Duet Text',sans-serif}
+#clock-date{color:var(--cocoa);font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif}
 body[data-streak=complete] .day-clock{background:#f2e6bc;border-color:#9a6937}
 body[data-streak=renew] .day-clock{background:#edf0d8;border-color:#7b8757}
 body[data-streak=broken] .day-clock{background:#e9e5dc;border-color:#8e887b}
@@ -561,7 +561,7 @@ body[data-streak=broken] .day-clock{background:#e9e5dc;border-color:#8e887b}
 body[data-streak=renew] #streak img{filter:sepia(.4) saturate(.6);opacity:.85}
 #streak-scene{position:fixed;inset:0;z-index:90;display:grid;place-content:center;justify-items:center;background:#f2e8d5cf;backdrop-filter:blur(3px);pointer-events:none;animation:scene-fade 2.7s both}
 #streak-scene img{width:clamp(160px,30vw,280px);height:auto;transform-origin:center;animation:none}
-#streak-scene span{font:40px 'Duet Text',sans-serif;color:#78553d;animation:scene-fade 2.5s both}
+#streak-scene span{font:40px 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;color:#78553d;animation:scene-fade 2.5s both}
 #streak-scene.broken img{animation:none}
 
 @keyframes scene-fade{0%,100%{opacity:0}15%,70%{opacity:1}}
@@ -615,7 +615,7 @@ body[data-time=night][data-view=walls] #identity{color:#fff6e5}
 @media(max-width:350px){.music-panel{gap:18px}
 .music-buttons{justify-content:flex-start}}
 #settings{color:var(--cocoa);background:var(--cream)}
-#settings button,#settings output{font-family:'Duet Text',sans-serif;font-weight:400}
+#settings button,#settings output{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:400}
 .entry-paper{color:var(--cocoa);transform:none}
 .entry-paper label{font-size:20px;letter-spacing:.1em}
 .pass-row{margin-top:20px;padding:4px 6px 4px 12px;background:#f2e8d580;border:1.5px solid #a58c67;border-radius:5px 9px 6px 8px}
@@ -642,7 +642,7 @@ body.dev-reduced *,body.dev-reduced *:before,body.dev-reduced *:after{animation:
 
 @media(prefers-reduced-motion:reduce){#streak.earned img{animation:none}}
 #settings-title{font-family:'Duet Hand',sans-serif;letter-spacing:.035em}
-#settings .settings-tabs button{font-family:'Duet Text',sans-serif;font-weight:600}
+#settings .settings-tabs button{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:600}
 body[data-view=walls] #identity{color:var(--cocoa)}
 body[data-time=night][data-view=walls] #identity{color:#fff6e5}
 #streak{position:relative;isolation:isolate}
@@ -830,10 +830,10 @@ canvas.ed-sample{display:block;width:100%;height:56px}
 #drafts-open:hover .note-flat,#drafts-open:focus-visible .note-flat{opacity:0}
 #drafts-open:hover .note-lift,#drafts-open:focus-visible .note-lift{opacity:1;filter:drop-shadow(1px 2px 0 #59473924)}
 #drafts-open:active .note-lift{transform:translateY(1px);filter:none}
-.drafts-count{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 6px;margin-left:-2px;border-radius:48% 54% 45% 56% / 55% 46% 54% 47%;background:var(--terracotta);color:var(--cream);font:14px/1 'Duet Text',sans-serif;border:1.6px solid var(--cocoa)}
+.drafts-count{display:inline-flex;align-items:center;justify-content:center;min-width:23px;height:23px;padding:0 6px;margin-left:-2px;border-radius:48% 54% 45% 56% / 55% 46% 54% 47%;background:var(--terracotta);color:var(--cream);font:14px/1 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;border:1.6px solid var(--cocoa)}
 
-#drafts{width:min(780px,94vw);max-height:calc(100dvh - 60px);margin:36px auto auto;padding:22px 28px 26px;border:2px solid var(--cocoa);border-radius:8px 12px 6px 10px;background:var(--cream);overflow:auto;font-family:'Duet Text',sans-serif}
-#drafts-title{font-family:'Duet Text',sans-serif;font-weight:400}
+#drafts{width:min(780px,94vw);max-height:calc(100dvh - 60px);margin:36px auto auto;padding:22px 28px 26px;border:2px solid var(--cocoa);border-radius:8px 12px 6px 10px;background:var(--cream);overflow:auto;font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif}
+#drafts-title{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:400}
 .drafts-empty{font:20px/1.4 'Duet Script',cursive;color:var(--muted);text-align:center;margin:34px 0 30px}
 .drafts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:34px 28px;padding:16px 6px 10px}
 .draft-card{margin:0;padding:24px 14px 8px;animation:none;display:flex;flex-direction:column;gap:4px;color:var(--cocoa)}
@@ -841,16 +841,16 @@ canvas.ed-sample{display:block;width:100%;height:56px}
 .draft-open:hover .draft-name{text-decoration:underline wavy #9d6c3566;text-underline-offset:4px}
 .draft-thumb{display:block;width:100%;aspect-ratio:320/230;object-fit:cover;border:1.5px solid #59473933;border-radius:3px 6px 3px 5px;background:var(--cream)}
 .draft-name{display:block;margin-top:9px;font:400 24px/1.2 'Duet Script',cursive;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.draft-meta{display:block;font:14px/1.4 'Duet Text',sans-serif;color:var(--muted)}
+.draft-meta{display:block;font:14px/1.4 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;color:var(--muted)}
 .draft-actions{display:flex;justify-content:flex-end;gap:2px;margin-top:-2px}
 .draft-actions .icon-button,.bin-row .icon-button{width:38px;height:38px}
 .draft-actions svg,.bin-row svg{width:22px;height:22px}
 .drafts-bin{margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)}
-.bin-toggle{font:16px 'Duet Text',sans-serif;color:var(--muted);padding:4px 0}
+.bin-toggle{font:16px 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;color:var(--muted);padding:4px 0}
 .bin-toggle:after{content:' ▾';font-size:12px}.bin-toggle[aria-expanded=true]{color:var(--cocoa)}.bin-toggle[aria-expanded=true]:after{content:' ▴'}
-.bin-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0;font:16px 'Duet Text',sans-serif;border-bottom:1px dotted var(--line)}
-.bin-empty{margin:8px 0 0;font:15px 'Duet Text',sans-serif;color:var(--muted)}
-#drafts .error{margin:12px 0 0;font:15px/1.4 'Duet Text',sans-serif}
+.bin-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 0;font:16px 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;border-bottom:1px dotted var(--line)}
+.bin-empty{margin:8px 0 0;font:15px 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;color:var(--muted)}
+#drafts .error{margin:12px 0 0;font:15px/1.4 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif}
 
 .draft-title{flex:0 1 240px;min-width:0;padding:4px 2px;border:0;border-bottom:1.6px dashed #b8a27e;border-radius:0;background:transparent;font:400 21px 'Duet Script',cursive;color:var(--cocoa);text-overflow:ellipsis}
 .draft-title::placeholder{color:#a8967a}
@@ -885,7 +885,7 @@ canvas.ed-sample{display:block;width:100%;height:56px}
 /* ===== Pages that feel like paper, and a paper choice that matters ===== */
 /* Notes wear the paper they were written on (tiles generated in app.js and handed over as --tex-*), with a faint light-to-shade falloff. */
 .note.cream:before,.draft-card.cream{background-image:var(--tex-cream,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
-.note.rose:before,.draft-card.rose{background-image:var(--tex-rose,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
+.note.rose:before,.draft-card.rose{background-image:url(/assets/paper-rose.jpg),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:cover,100% 100%}
 .note.sage:before,.draft-card.sage{background-image:var(--tex-sage,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
 .note.blue:before,.draft-card.blue{background-image:var(--tex-blue,none),linear-gradient(180deg,#ffffff22,transparent 14%,transparent 88%,#7a5a2c12);background-size:300px 300px,100% 100%}
 /* The editor's page: a clear edge and two sheets showing underneath, so it reads as a page lying on the desk. */
@@ -950,7 +950,7 @@ body[data-streak=broken] #clock-face .clock-wash{fill:#85745f;opacity:.12}
 #clock-face .clock-pin{fill:#dba654;stroke:#594739;stroke-width:1.2}
 
 /* Editor text in the hand-lettered face used for the wall's headings. */
-#editor-title,.ed-status,.ed-label,.ed-label label,.ed-label output,.ed-hint,.ed-tool,.ed-size small,.preview-label,.ed-error,.ed-swatches+.ed-label{font-family:'Duet Text',sans-serif;font-weight:400}
+#editor-title,.ed-status,.ed-label,.ed-label label,.ed-label output,.ed-hint,.ed-tool,.ed-size small,.preview-label,.ed-error,.ed-swatches+.ed-label{font-family:'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;font-weight:400}
 #editor-title{font-size:26px;letter-spacing:.02em}
 .ed-status{font-size:14px;letter-spacing:.02em}
 .ed-label{font-size:15px;letter-spacing:.03em}
@@ -997,8 +997,33 @@ body[data-streak=broken] #clock-face .clock-wash{fill:#85745f;opacity:.12}
 @media(max-width:620px){.entry-flowers .f1{width:30px;right:6%}.entry-flowers .f2{width:27px;right:17%}.entry-flowers .f3{width:36px;right:26%}.entry-flowers .f{bottom:-24px}}
 
 /* Passing messages: one small quiet slip, nothing more. */
-#toast{width:max-content;max-width:min(86vw,340px);inset:auto auto max(26px,env(safe-area-inset-bottom)) 50%;margin:0;overflow:visible;padding:9px 16px;border:1.5px solid #cdb68e;border-radius:6px;background:#fff6e5;color:var(--cocoa);font:400 15px/1.3 'Duet Text',sans-serif;text-align:center;translate:0 8px;transition:opacity .2s,translate .2s;z-index:2147483000}
+#toast{width:max-content;max-width:min(86vw,340px);inset:auto auto max(26px,env(safe-area-inset-bottom)) 50%;margin:0;overflow:visible;padding:9px 16px;border:1.5px solid #cdb68e;border-radius:6px;background:#fff6e5;color:var(--cocoa);font:400 15px/1.3 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;text-align:center;translate:0 8px;transition:opacity .2s,translate .2s;z-index:2147483000}
 #toast.warn{border-color:#a65f4c;color:#8a4a3a}
 #toast.show{opacity:1;translate:0 0}
 /* Inline notes beside the buttons that caused them */
-.error,#drafts .error{font:15px/1.4 'Duet Text',sans-serif;color:#a65f4c}
+.error,#drafts .error{font:15px/1.4 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;color:#a65f4c}
+
+/* The animal on the title is placed by its own drawing: the cat's belly line is ~65% down its picture, the deer's ~82%, so each rests on the letter tops. */
+.wordmark .project-word .brand-cat[src*="deer"]{width:46%;left:55%;top:.13em;transform:translateY(-82.4%)}
+
+/* ---- settings and the about note use the same buttons as the dash ---- */
+#settings{border:2px solid #594739;border-radius:14px;background:#fff6e5;box-shadow:0 12px 30px #3b2f2638}
+#settings .paper-button,#next-track,#settings-close{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:46px;min-height:46px;padding:0 18px;color:#594739;font:400 18px/1 'Duet Text',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:.02em;cursor:pointer;background:linear-gradient(180deg,#fffaf0,#fff2da);border:2px solid #594739;border-radius:14px 17px 13px 16px/16px 13px 17px 14px;box-shadow:0 3px 0 #59473977,0 8px 12px #59473320,inset 0 1px 0 #fff;transition:transform .14s,box-shadow .14s,background .2s}
+#settings .paper-button svg,#next-track svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#settings .paper-button:hover,#next-track:hover,#settings-close:hover:hover{transform:translateY(-1px);background:#fff4e0;box-shadow:0 4px 0 #59473977,0 10px 14px #59473326,inset 0 1px 0 #fff}
+#settings .paper-button:active,#next-track:active,#settings-close:active:active{transform:translateY(3px);box-shadow:0 0 0 #59473977,0 2px 4px #59473326,inset 0 1px 0 #fff}
+#mute{color:#fff9e9!important;background:linear-gradient(180deg,#75865f,#66745a)!important;border-color:#3d4933!important;box-shadow:0 3px 0 #3d4933,0 8px 12px #3d493338,inset 0 1px 0 #ffffff3d!important}
+#mute:hover{filter:brightness(1.06)}
+#mute svg{fill:currentColor;stroke:none}
+#next-track{width:46px;padding:0}
+#settings-close{width:40px;height:40px;min-height:40px;padding:0;border-radius:50% 46% 52% 44%/46% 52% 44% 50%;box-shadow:0 2px 0 #59473966}
+#settings-close svg svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2}
+#settings .music-buttons{display:flex;gap:10px}#settings #mute{flex:1}
+#settings input[type=range]{accent-color:#66745a}
+
+/* hand-made scrollbars, everywhere */
+*{scrollbar-width:thin;scrollbar-color:#8d745b88 transparent}
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#8d745b88;border-radius:9px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:#594739aa;background-clip:content-box;border:2px solid transparent}

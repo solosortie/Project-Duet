@@ -1,5 +1,5 @@
 // Shared helpers for the Worker modules.
-export const SECURITY = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin' };
+export const SECURITY = { 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin', 'X-Frame-Options': 'DENY', 'Cross-Origin-Resource-Policy': 'same-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()' };
 const enc = new TextEncoder();
 
 export async function sha256(s) {
@@ -7,6 +7,21 @@ export async function sha256(s) {
   let out = '';
   for (const b of new Uint8Array(d)) out += b.toString(16).padStart(2, '0');
   return out;
+}
+// Passphrase hashes. New ones are PBKDF2-SHA256 ("k1:<iterations>:<hex>"); older salted SHA-256 hashes still verify
+// and are upgraded the next time that wall is opened. DUET_KDF_ITER sets the cost (default 10000, 0 turns it off).
+export const kdfIter = (env) => { const n = Number(env && env.DUET_KDF_ITER); return Number.isFinite(n) ? Math.max(0, Math.min(Math.floor(n), 600000)) : 10000; };
+const hexOf = (buf) => { let o = ''; for (const b of new Uint8Array(buf)) o += b.toString(16).padStart(2, '0'); return o; };
+export async function hashPass(salt, pass, iter) {
+  if (!iter) return sha256(`${salt}:${pass}`);
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveBits']);
+  return `k1:${iter}:` + hexOf(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode(salt), iterations: iter }, key, 256));
+}
+export async function checkPass(stored, salt, pass) {
+  stored = String(stored || '');
+  if (!stored) return false;
+  if (stored.startsWith('k1:')) { const iter = Number(stored.split(':')[1]); return iter > 0 && iter <= 600000 && safeEqual(stored, await hashPass(salt, pass, iter)); }
+  return safeEqual(stored, await sha256(`${salt}:${pass}`));
 }
 export function safeEqual(a, b) {
   if (a.length !== b.length) return false;

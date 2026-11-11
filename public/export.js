@@ -2,7 +2,7 @@
 (()=>{
 const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
 const NAMES={chat:'ChatChan',aryan:'Aryan Chan'};
-const PAPER={cream:'#ffffff',rose:'#efd2bd',sage:'#dce1c6',blue:'#d9e3e2'};
+const PAPER={cream:'#ffffff',rose:'#fca7a7',sage:'#dce1c6',blue:'#d9e3e2'};
 let wallChoice='both',busy=false;
 
 const tabs=qa('.settings-tabs [data-tab]');

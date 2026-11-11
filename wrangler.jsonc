@@ -11,7 +11,9 @@
 		"run_worker_first": [
 			"/",
 			"/api/*",
-			"/healthz"
+			"/healthz",
+			"/robots.txt",
+			"/sitemap.xml"
 		],
 		// /<address> has no file, so the app shell is served and room.js loads that room.
 		"not_found_handling": "single-page-application"
@@ -29,6 +31,8 @@
 		// Optional: set NOTIFY_WEBHOOK (a Discord or Slack-style webhook URL) as a secret to get a ping for each new request.
 		// Per-request byte cap. Detailed canvases upload in small validated chunks.
 		"DUET_MAX_BODY": "250000",
+		"DUET_DASH_HOST": "dash.purrpause.space",
+		"DUET_DEV_HOST": "dev.purrpause.space",
 		// SHA-256 of the default passphrase. Override by setting a secret: npx wrangler secret put DUET_PASSPHRASE
 		"DUET_PASSPHRASE_SHA256": "08490295488a1189099751ebeddb5992313dd2a831e07a92e66d196ddc261777"
 	},

@@ -5,7 +5,7 @@
   if (path.length > 1 && /^\/[a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?\/$/.test(path)) { location.replace(path.slice(0, -1) + location.search); return; }
   var m = path.match(/^\/([a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?)$/);
   var slug = m && m[1];
-  var SCRIPTS = ['/drawing-store.js', '/fill.js', '/app.js', '/drafts.js', '/ambience.js', '/clouds.js', '/export.js'];
+  var SCRIPTS = ['/drawing-store.js', '/fill.js', '/paper.js', '/app.js', '/drafts.js', '/ambience.js', '/clouds.js', '/export.js'];
   function start() {
     SCRIPTS.forEach(function (src) { var s = document.createElement('script'); s.src = src; s.async = false; document.body.appendChild(s); });
     document.documentElement.classList.remove('room-wait');
@@ -15,7 +15,7 @@
 
   document.documentElement.classList.add('room-wait');
   function hold() {
-    fetch('/dev/hold/').then(function (r) { return r.text(); }).then(function (html) {
+    fetch('/dash/hold/').then(function (r) { return r.text(); }).then(function (html) {
       document.open(); document.write(html); document.close();
     }).catch(function () { document.documentElement.classList.remove('room-wait'); });
   }

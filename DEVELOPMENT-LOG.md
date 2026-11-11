@@ -157,3 +157,62 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - Four hand-drawn rolls (`assets/tape-red|yellow|blue|green.webp`) and five layouts, chosen from the note's nonce so both people see the same: 0 two pieces on opposite corners, 1 two on the top corners, 2 one strip across the top middle, 3 one long piece across the top-right corner, 4 two upright pieces over the top edge. One roll per note. `addTapes()` in `app.js` and the `data-tape` rules at the end of `style.css`; each piece is centred on `--x/--y` and turned by `--r`. Draft cards use the same function.
 - The old tape SVGs remain only for the `/dev` pages. The entry card uses the yellow roll.
 - Page-curl corners from the reference sheet are not implemented.
+
+
+## Dash and review site audit
+- Merged the dash and review site into the latest walls code; shared paper tiles moved to `public/paper.js`.
+- Fixed: review API and `/` unusable on localhost when the host names are set; passphrase step could resume past a lost passphrase; waiting scene overflowed on phones; stamp text was clipped; open confirmations in the review list were wiped by the refresh; failed delete/decide were silent.
+- Old `/dev` folder and `dev.zip` removed.
+
+## Round: dash polish 2 (favicon, sound, cards, buttons, hanging)
+- Walls entry title: per-animal placement. A swapped deer now rests on the letters (`.brand-cat[src*="deer"]` rule in style.css); the cat rule is unchanged.
+- Dash title cat sits on the letters (`.wm img`).
+- Mug button removed. Replaced by a gear (top-right) opening a "Sound" dialog (music on/off, track, volume). It shares the walls page's localStorage keys (`duet-audio`, `duet-track`).
+- New neutral favicon (superseded in the next round by the cat and deer icons).
+- Cards are proper rounded cards (no clip-path cuts). Buttons restyled (moss primary, secondary, back, icon, link, chip). Step progress is now stepping stones.
+- Waiting scene: sagging twisted rope with nails, leaning pegs, rounded card. Link, hourglass and status icon use `--ink` so they stay readable on the night sky.
+
+## Round: dash polish 3
+- One page, no scrolling: the intro is three short pages inside one card; step screens are sized to fit (main only scrolls as a last resort on tiny windows). Scroll hint removed.
+- All dash cards carry the same horizontal yellow tape. Buttons redone (Next/Back with labels, press-down feel, hand-cut corners). Step stones are buttons: back always, forward only when the steps before are valid.
+- Cream paper is warm and grainy instead of white. The review card shows the passphrase with an eye button.
+- After sending: a "save your passphrase" panel (eye, copy) stays on the waiting and approved screens. The passphrase is only in memory, so it cannot be shown again after a refresh.
+- Optional note while waiting: `POST /api/request/note {slug, ticket, note}` (migration 0005 adds `rooms.note`, `rooms.ticket`). The ticket is returned once at creation and kept by the sender's browser (stored hashed). Max 400 characters, pending only. Shown on the review site.
+- Hand-drawn "i" on each card with a short tip (hover, or tap on touch).
+- Hourglass: sand runs down, a thin stream falls, then it turns over.
+- Favicon: the neutral one is gone. `fav.js` alternates the cat and the deer icons per visit (walls pages still use the chosen animal).
+- Review site: plain soft background, flat cards, no tape or sky; shows the sender's note.
+
+## Round: dash polish 4
+- Dash cards use different horizontal tapes again (colour chosen per card).
+- The "i" opens a small note beside the cards (below them on a narrow screen), closes on a second tap, outside click or Escape.
+- Waiting screen simplified: card, status, one slim passphrase row, one action. Copy invite moved to the approved state.
+- Note box intro shortened.
+- Main site: an "i" next to settings opens the introductory text; settings/about buttons use the dash button style.
+- Review site brought back to the shared look (sky, hills, paper cards, dash buttons), still without tape.
+
+## Round: production pass
+- Dash: the "i" beside the gear brings the intro back (walls site has none). Continue on the first visit starts the music (retries on the next tap if the browser refuses). One info icon on the names step. The swap button flies the two pictures across.
+- Guard rails (worker/guard.js, quiet by design): per-person limits on the public endpoints (in memory), and durable limits in D1 for new requests (6/hour on top of 3/day), notes (12/hour), walls passphrase tries (10 per wall per 10 min, 40 across walls), and review sign-in (6 per 15 min per person, 40/hour overall). Network addresses are only ever stored as a salted hash; set a secret `IP_SALT` in production (`npx wrangler secret put IP_SALT`). Writes must be JSON (415 otherwise). 429s carry Retry-After.
+- Headers: CSP, frame denial, permissions policy, COOP/CORP, HSTS in public/_headers and on API replies. Static files are cached a day (assets) or revalidated (html/js/css).
+- Search: dash front page is indexable (title, description, canonical, Open Graph, Twitter card, JSON-LD, sitemap). Walls and review site are noindex (meta + X-Robots-Tag) and robots.txt disallows them. Fonts are preloaded with font-display swap, one h1 per page. The canonical and sitemap URLs assume dash.purrpause.space; change them if the domain changes.
+- Responsive: checked 320x568 up to 2560x1440 and phone landscape (no sideways overflow; very short screens scroll inside the page rather than clip).
+- New tests: worker/guard-test.mjs. Run all: test, rooms-test, features-test, drafts-test, dash-test, guard-test, npm run test:unit.
+
+## Final merge: limiter, fit, search
+
+- Passphrase tries, review sign-in, new requests and notes now reserve their slot before the secret is checked (one atomic upsert), so parallel guesses all count. Limits: 10 tries per wall per person per 10 minutes, 40 per person across walls, 120 per wall per hour across everyone, review sign-in 6 per 15 minutes and 40 per hour. A correct passphrase hands its slot back.
+- New walls store passphrases with PBKDF2-SHA256 (`k1:<iterations>:<hex>`, default 10000, set `DUET_KDF_ITER` to change, 0 turns it off). Older SHA-256 walls still open and are upgraded the next time they are opened. On the free Workers plan keep the cost low; raise it on a paid plan.
+- `robots.txt` on the dash now only blocks `/api/` and `/dash/hold/`, so crawlers can load the dash styles and scripts. Unknown addresses fall back to the app shell, which is `noindex`.
+- Dash layout: the intro card shrinks to the screen and scrolls inside itself as a last resort; steps and the waiting screen fit from 320x568 to desktop and in phone landscape (down to 568x320) with no page scroll. Checked in a headless browser at 10 sizes.
+- Swap on the names step slides the two cards across each other. The info note opens under the buttons (or above the card) so it never covers Next. "I have read this, continue" always starts the music.
+- Tests: `npm test` now also runs `guard-test.mjs` (parallel-guess, robots, headers, limits) and `hash-test.mjs` (hashing) runs with the unit tests.
+- Production: set `IP_SALT` as a secret (`npx wrangler secret put IP_SALT`) and apply migrations `0005_drafts.sql` and `0005_request_note.sql`.
+
+## Final polish round
+- Intro card: titles per page (What this is / How to start / Please know), redundant inner headings removed, one bottom row (Back, dots, Next / Continue) with consistent sizes, title shrinks while the intro is open so the third page has room, page never scrolls (card scrolls inside only at 320px and phone landscape).
+- "A note for the developer": concise line, neutral placeholder.
+- Copy button on the final card copies the address and passphrase; copy-address when no passphrase is held.
+- Custom thin scrollbars on all three sites.
+- Root move: after admin move-home the root serves the dash in place (no redirect), and robots, sitemap and indexing treat it as public. Assets are fetched as /dash/ and /devsite/ so no redirect to /dash/ happens.
+- Cat shifted right onto "ECT" (dash.css .wm img, style.css .brand-cat).

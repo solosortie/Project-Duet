@@ -1,0 +1,45 @@
+/* The review site: the same sky, hills and paper as the rest, with no tape. Cards are plain paper; the list scrolls inside the page. */
+main{scrollbar-width:thin}
+.dev-head{display:none}
+.view{width:min(1040px,94vw);display:flex;flex-direction:column;align-items:center;gap:22px;padding:14px 0 30px}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.tab{display:flex;align-items:center;gap:9px;height:44px;padding:0 18px;cursor:pointer;color:#594739;font:400 19px/1 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:.02em;background:linear-gradient(180deg,#fffaf0,#fff2da);border:2px solid #594739;border-radius:14px 17px 13px 16px/16px 13px 17px 14px;box-shadow:0 3px 0 #59473977,0 8px 12px #59473320;transition:transform .14s,box-shadow .14s}
+.tab:hover{transform:translateY(-1px)}
+.tab b{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 6px;border-radius:48% 54% 45% 56%/55% 46% 54% 47%;background:#dce1c6;border:1.6px solid #594739;font:400 15px/1 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif}
+.tab[data-t=wait] b{background:#fca7a7}.tab[data-t=declined] b{background:#e8dbb9}
+.tab[aria-pressed=true]{color:#fff9e9;background:linear-gradient(180deg,#75865f,#66745a);border-color:#3d4933;box-shadow:0 3px 0 #3d4933,0 8px 12px #3d493338;transform:translateY(0)}
+.tab[aria-pressed=true] b{color:#594739}
+.grid{width:100%;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,420px),1fr));gap:30px 26px;padding:10px 4px 4px}
+.req{position:relative;isolation:isolate;padding:30px 22px 18px;filter:drop-shadow(0 6px 5px #70532722);transition:opacity .5s,transform .4s}
+.req.rose{--paper:#fca7a7}.req.sage{--paper:#dce1c6}.req.cream{--paper:#fff6e5}
+.req.gone{opacity:0;transform:translateY(-14px)}
+.req .top{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}
+.req .pair2{display:flex;gap:2px}.req .pair2 img{width:54px;height:46px;object-fit:contain}
+.req .who{font:22px 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;overflow-wrap:anywhere}
+.req .meta{font:16px 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;opacity:.75;margin-top:2px;overflow-wrap:anywhere}
+.req .meta a{text-decoration:underline;text-underline-offset:3px}
+.num{position:absolute;right:18px;top:-12px;z-index:4;display:grid;place-items:center;min-width:34px;height:34px;padding:0 8px;border:2px solid #594739;border-radius:48% 54% 45% 56%/55% 46% 54% 47%;background:#fff6e5;font:400 20px/1 'Duet Hand',ui-rounded,'Trebuchet MS',sans-serif;box-shadow:0 2px 0 #59473966}
+.acts{display:flex;gap:8px}
+.req .ic{display:grid;place-items:center;width:42px;height:42px;border:2px solid #594739;border-radius:12px 14px 11px 13px;background:linear-gradient(180deg,#fffaf0,#fff2da);box-shadow:0 2px 0 #59473977;transition:transform .14s,box-shadow .14s,background .2s;color:#594739}
+.req .ic svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.req .ic:hover{transform:translateY(-1px);box-shadow:0 3px 0 #59473977}.req .ic:active{transform:translateY(2px);box-shadow:none}
+.req .ic.ok{background:linear-gradient(180deg,#75865f,#66745a);border-color:#3d4933;color:#fff9e9;box-shadow:0 2px 0 #3d4933}
+.req .ic.no:hover{background:#f6d4cc}
+.tag{font:14px 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;padding:2px 8px;border:1.5px solid #594739;border-radius:8px;background:#dce1c6;vertical-align:middle}
+.note{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:#fff6e5b8;border:1.5px dashed #5947396b;font:16px/1.45 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;white-space:pre-wrap;overflow-wrap:anywhere}
+.note b{display:block;margin-bottom:3px;font:400 14px 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:.05em;text-transform:uppercase;opacity:.65}
+.ask{margin:12px 0 0;padding-top:10px;border-top:1.5px dashed #5947394d}
+.ask p{margin:0 0 8px;font:16px/1.4 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif}
+.ask .row{margin:0}.ask .f{font-size:18px;padding:8px 12px}
+.ask .row .cta{height:42px;padding:0 14px}
+.ask .err2{min-height:20px;margin:6px 0 0;font:15px 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;color:#a65f4c}
+.empty{font:22px 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;opacity:.7;text-align:center;margin:30px 0}
+.stampover{position:absolute;left:50%;top:50%;width:min(70%,230px);margin-left:calc(min(70%,230px)/-2);margin-top:-45px;z-index:5;pointer-events:none;transform:rotate(-9deg);animation:stampIn .5s cubic-bezier(.3,1.5,.5,1) forwards;mix-blend-mode:multiply}
+.stampover path{fill:#fff6e5dd;stroke:currentColor;stroke-width:4;stroke-linejoin:round}.stampover text{fill:currentColor;font:400 36px 'Duet Hand',ui-rounded,'Trebuchet MS',sans-serif;letter-spacing:.04em}
+.stampover.ok{color:#5d7a52}.stampover.no{color:#a65f4c}
+.so{width:auto;height:42px;padding:0 20px;font-size:17px}
+.login{width:min(92vw,460px)}.login .row{margin:0 0 6px}.login .hint{margin:10px 0 0}
+@media(max-width:720px){.req .top{grid-template-columns:auto 1fr}.req .acts{grid-column:1/-1;justify-content:flex-end}}
+*{scrollbar-width:thin;scrollbar-color:#8d745b88 transparent}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#8d745b88;border-radius:9px;border:2px solid transparent;background-clip:content-box}

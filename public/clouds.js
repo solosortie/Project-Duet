@@ -19,7 +19,7 @@
     const c=document.createElement('div'),img=document.createElement('img'),dur=between(spec.dur);
     c.className='cloud';c.style.top=(spec.top[0]+(spec.top[1]-spec.top[0])*((i+rnd()*.8)/spec.count)).toFixed(1)+'%';c.style.width=Math.round(between(spec.width)*(innerWidth<620?.7:1))+'px';c.style.setProperty('--rest',(6+rnd()*68).toFixed(0)+'%');
     c.style.setProperty('--dur',dur.toFixed(0)+'s');c.style.setProperty('--delay','-'+(dur*((i+rnd()*.7)/spec.count)).toFixed(1)+'s');
-    img.src='assets/cloud-'+(order[i%SPRITES]+1)+'.svg';img.alt='';img.draggable=false;img.style.setProperty('--bob',(6+rnd()*6).toFixed(1)+'s');if(rnd()<.5)img.style.scale='-1 1';
+    img.src='/assets/cloud-'+(order[i%SPRITES]+1)+'.svg';img.alt='';img.draggable=false;img.style.setProperty('--bob',(6+rnd()*6).toFixed(1)+'s');if(rnd()<.5)img.style.scale='-1 1';
     c.append(img);layer.append(c);
    }
    field.append(layer);layers.push({el:layer,spec});

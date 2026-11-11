@@ -1,5 +1,6 @@
 // Rooms: lookup, public info, creation (pending approval) and the owner's review API.
-import { reply, sha256, safeEqual, newToken, validTimezone } from './util.js';
+import { reply, sha256, safeEqual, newToken, validTimezone, hashPass, checkPass, kdfIter } from './util.js';
+import { dbLimit, dbHit, dbRefund, slow, sweep, who, wait } from './guard.js';
 
 export const ANIMALS = ['deer', 'cat'];                       // add a name here once assets/<name>*.svg exist
 export const DYNAMICS = ['partners', 'friends', 'siblings', 'family'];
@@ -42,6 +43,17 @@ export async function roomInfo(slug, env) {
     names: { aryan: r.name_a, chat: r.name_b }, animals: { aryan: r.animal_a, chat: r.animal_b } });
 }
 
+// What the person who made a request sees while waiting: where it stands, and how many requests are ahead of it.
+// Declined requests are reported only here; /api/room keeps treating them as "nobody here".
+export async function requestStatus(slug, env) {
+  if (!slugShape(slug)) return reply(200, { status: 'none' });
+  const r = await env.DB.prepare('SELECT id,status,created FROM rooms WHERE slug=?').bind(slug).first();
+  if (!r || r.id === 1) return reply(200, { status: 'none' });
+  if (r.status !== 'pending') return reply(200, { status: r.status === 'live' ? 'live' : 'declined' });
+  const ahead = await env.DB.prepare("SELECT count(*) n FROM rooms WHERE status='pending' AND id<>1 AND (created<? OR (created=? AND id<?))").bind(r.created, r.created, r.id).first();
+  return reply(200, { status: 'pending', ahead: ahead.n });
+}
+
 export async function slugCheck(slug, env) {
   if (!slugFree(slug)) return reply(200, { ok: false, reason: 'invalid' });
   const hit = await env.DB.prepare('SELECT 1 FROM rooms WHERE slug=?').bind(slug).first();
@@ -64,9 +76,14 @@ export async function createRoom(request, data, env, ctx) {
   if ([...pass].length < 3 || [...pass].length > 64) return reply(400, { error: 'Passphrase needs at least three characters.' });
 
   const twin = await env.DB.prepare('SELECT status,salt,pass_hash,name_a,name_b FROM rooms WHERE slug=?').bind(slug).first();
-  if (twin && twin.status === 'pending' && twin.name_a === names[0] && twin.name_b === names[1] && twin.pass_hash === await sha256(`${twin.salt}:${pass}`)) {
-    return reply(200, { ok: true, slug, status: 'pending', repeat: true });
+  if (twin && twin.status === 'pending' && twin.name_a === names[0] && twin.name_b === names[1] && await checkPass(twin.pass_hash, twin.salt, pass)) {
+    const ticket = newToken();
+    await env.DB.prepare('UPDATE rooms SET ticket=? WHERE slug=?').bind(await sha256(ticket), slug).run();
+    return reply(200, { ok: true, slug, status: 'pending', repeat: true, ticket });
   }
+  const burst = await dbLimit(env, `c:${await who(request, env)}`, 6, 3600);   // a few mistakes an hour is normal; a script is not
+  if (!burst.ok) return slow(burst.wait, 'Too many requests just now. Please try again later.');
+  await sweep(env);
   const now = Date.now() / 1000;
   const ipHash = (await sha256(`${request.headers.get('CF-Connecting-IP') || 'local'}|${env.IP_SALT || 'duet'}`)).slice(0, 24);
   const recent = await env.DB.prepare('SELECT count(*) n FROM rooms WHERE ip_hash=? AND created>?').bind(ipHash, now - DAY).first();
@@ -74,10 +91,10 @@ export async function createRoom(request, data, env, ctx) {
   const pending = await env.DB.prepare("SELECT count(*) n FROM rooms WHERE status='pending'").first();
   if (pending.n >= 200) return reply(503, { error: 'Requests are paused for now.' });
 
-  const salt = newToken().slice(0, 22);
+  const salt = newToken().slice(0, 22), ticket = newToken();
   try {
-    await env.DB.prepare('INSERT INTO rooms(slug,status,dynamic,name_a,name_b,animal_a,animal_b,tz,salt,pass_hash,ip_hash,created) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(slug, 'pending', dynamic, names[0], names[1], animals[0], animals[1], tz, salt, await sha256(`${salt}:${pass}`), ipHash, now).run();
+    await env.DB.prepare('INSERT INTO rooms(slug,status,dynamic,name_a,name_b,animal_a,animal_b,tz,salt,pass_hash,ip_hash,created,ticket) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
+      .bind(slug, 'pending', dynamic, names[0], names[1], animals[0], animals[1], tz, salt, await hashPass(salt, pass, kdfIter(env)), ipHash, now, await sha256(ticket)).run();
   } catch (e) {
     if (/UNIQUE/i.test(String(e && e.message))) return reply(409, { error: 'That address is taken.' });
     throw e;
@@ -87,7 +104,24 @@ export async function createRoom(request, data, env, ctx) {
     const text = `New duet request: ${slug} (${names[0]} & ${names[1]})`;
     ctx.waitUntil(fetch(env.NOTIFY_WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: text, text }) }).catch(() => {}));
   }
-  return reply(201, { ok: true, slug, status: 'pending' });
+  return reply(201, { ok: true, slug, status: 'pending', ticket });
+}
+
+// A short note for the owner, added while the request waits. Only the sender's browser holds the ticket.
+export const NOTE_MAX = 400;
+export async function setRequestNote(request, data, env) {
+  const slug = typeof data.slug === 'string' ? data.slug.toLowerCase() : '';
+  const ticket = typeof data.ticket === 'string' ? data.ticket : '';
+  const note = clean(data.note);
+  if (!slugShape(slug) || !ticket) return reply(400, { error: 'Could not add the note.' });
+  if ([...note].length > NOTE_MAX) return reply(400, { error: 'Keep the note under 400 characters.' });
+  const eased = await dbLimit(env, `n:${await who(request, env)}`, 12, 3600);
+  if (!eased.ok) return slow(eased.wait, 'Too many tries. Please wait a little.');
+  const r = await env.DB.prepare('SELECT id,status,ticket FROM rooms WHERE slug=?').bind(slug).first();
+  if (!r || r.id === 1 || !r.ticket || !safeEqual(r.ticket, await sha256(ticket))) return reply(403, { error: 'Could not add the note.' });
+  if (r.status !== 'pending') return reply(409, { error: 'This request has been decided already.' });
+  await env.DB.prepare('UPDATE rooms SET note=? WHERE id=?').bind(note || null, r.id).run();
+  return reply(200, { ok: true });
 }
 
 // ---- owner review (admin) ----
@@ -99,14 +133,12 @@ async function adminSession(request, env) {
 
 export async function adminLogin(request, data, env, secure) {
   if (!env.ADMIN_PASSPHRASE) return reply(503, { error: 'Review is not configured.' });
-  const ip = `admin:${request.headers.get('CF-Connecting-IP') || 'local'}`, now = Date.now() / 1000;
-  const r = await env.DB.prepare('SELECT count, until FROM attempts WHERE ip=?').bind(ip).first();
-  if (r && r.until > now && r.count >= 6) return reply(429, { error: 'Too many tries.' });
+  const ip = `a:${await who(request, env)}`, now = Date.now() / 1000;
+  const r = await dbHit(env, ip, 900), all = await dbHit(env, 'a:*', 3600);   // reserved before checking: parallel guesses all count
+  if (r.count > 6 || all.count > 40) return slow(wait(r.count > 6 ? r : all, now), 'Too many tries.');   // 40 across everyone is a backstop against many addresses
   const ok = safeEqual(await sha256(String(data.passphrase ?? '')), await sha256(String(env.ADMIN_PASSPHRASE)));
-  if (!ok) {
-    await env.DB.prepare('INSERT OR REPLACE INTO attempts VALUES(?,?,?)').bind(ip, r && r.until > now ? r.count + 1 : 1, now + 900).run();
-    return reply(401, { error: 'Not quite.' });
-  }
+  if (!ok) return reply(401, { error: 'Not quite.' });
+  await dbRefund(env, 'a:*');
   const token = newToken();
   await env.DB.batch([
     env.DB.prepare('DELETE FROM attempts WHERE ip=?').bind(ip),
@@ -130,7 +162,7 @@ export async function adminRoute(request, url, data, env, secure) {
     return reply(200, { ok: true }, `${ADMIN_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict${secure ? '; Secure' : ''}`);
   }
   if (p === '/api/admin/rooms') {
-    const { results } = await env.DB.prepare("SELECT r.id,r.slug,r.status,r.dynamic,r.name_a,r.name_b,r.animal_a,r.animal_b,r.tz,r.created,r.decided,(SELECT count(*) FROM notes n WHERE n.room_id=r.id) notes FROM rooms r ORDER BY (r.status='pending') DESC, r.created DESC LIMIT 200").all();
+    const { results } = await env.DB.prepare("SELECT r.id,r.slug,r.status,r.dynamic,r.name_a,r.name_b,r.animal_a,r.animal_b,r.tz,r.created,r.decided,r.note,(SELECT count(*) FROM notes n WHERE n.room_id=r.id) notes FROM rooms r ORDER BY (r.status='pending') DESC, r.created DESC LIMIT 200").all();
     return reply(200, { rooms: results });
   }
   if (p === '/api/admin/move-home') {
