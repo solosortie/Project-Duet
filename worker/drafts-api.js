@@ -109,7 +109,7 @@ export async function draftsPost(path, data, session, env) {
     if (!row || row.deleted) return reply(404, { error: 'That draft is gone.' });
     if (await liveCount(env, rid, me) >= MAX_LIVE) return reply(409, { error: 'The shelf is full. Delete a draft to make room.' });
     const newId = hex16(), saveId = hex16(), nonce = hex16();
-    const title = cleanTitle(row.title ? `${row.title} (copy)` : '');
+    const title = session.vault ? row.title : cleanTitle(row.title ? `${row.title} (copy)` : '');
     await env.DB.batch([
       env.DB.prepare('INSERT INTO draft_chunks(draft,save_id,part,data,strokes,created) SELECT ?,?,part,data,strokes,? FROM draft_chunks WHERE draft=? AND save_id=?').bind(newId, saveId, now, id, row.save_id),
       env.DB.prepare('INSERT INTO drafts(id,room_id,author,editor,title,paper,nonce,rev,save_id,total,strokes,thumb,created,updated) VALUES(?,?,?,?,?,?,?,1,?,?,?,?,?,?)')
@@ -120,10 +120,11 @@ export async function draftsPost(path, data, session, env) {
   }
 
   if (path !== '/api/drafts') return reply(404, { error: 'Not found.' });
-  return saveChunk(data, id, me, rid, env, now);
+  return saveChunk(data, id, me, rid, env, now, !!session.vault);
 }
 
-async function saveChunk(data, id, me, rid, env, now) {
+const SEALED = /^v1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]+$/;
+async function saveChunk(data, id, me, rid, env, now, vault) {
   const { save, part, total, base, nonce } = data;
   const paper = data.paper;
   if (typeof save !== 'string' || !HEX32.test(save) || !Number.isInteger(part) || !Number.isInteger(total) || total < 1 || total > MAX_CHUNKS || part < 0 || part >= total
@@ -139,13 +140,23 @@ async function saveChunk(data, id, me, rid, env, now) {
   if (row && row.save_id === save) return reply(200, { ok: true, draft: draftMeta(row) });   // the same save arriving twice
   if (row && row.rev !== base) return reply(409, { code: 'draft_conflict', draft: draftMeta(row), error: 'A newer version of this draft was saved elsewhere.' });
 
-  // Validate this chunk exactly as note chunks are validated.
-  const strokes = data.drawing.map(unpack);
-  const check = validateNote({ nonce: `draft-${id}`.slice(0, 40), format: 2, drawing: strokes, paper, text_size: 40 }, me);
-  if (!check.note && !(data.drawing.length === 0 && ['cream', 'rose', 'sage', 'blue'].includes(paper))) return reply(400, { error: 'This drawing could not be saved.' });
-  const packed = JSON.stringify(data.drawing);
-  if (packed.length > MAX_CHUNK_CHARS) return reply(413, { error: 'Part of this drawing is too large.' });
-  await env.DB.prepare('INSERT OR REPLACE INTO draft_chunks(draft,save_id,part,data,strokes,created) VALUES(?,?,?,?,?,?)').bind(id, save, part, packed, data.drawing.length, now).run();
+  // A locked wall's draft chunks are opaque sealed pieces: only their shape and size are checked.
+  let packed, chunkStrokes;
+  if (vault) {
+    const piece = data.sealed;
+    if (data.drawing.length || typeof piece !== 'string' || !piece.length || piece.length > 150000 || !/^[A-Za-z0-9_.-]+$/.test(piece)) return reply(400, { error: 'Please reload the page.' });
+    const n = Number(data.strokes);
+    if (part === total - 1 && !(Number.isInteger(n) && n >= 1 && n <= MAX_STROKES)) return reply(400, { error: 'This drawing could not be saved.' });
+    packed = JSON.stringify([piece]); chunkStrokes = part === total - 1 ? n : 0;
+  } else {
+    // Validate this chunk exactly as note chunks are validated.
+    const strokes = data.drawing.map(unpack);
+    const check = validateNote({ nonce: `draft-${id}`.slice(0, 40), format: 2, drawing: strokes, paper, text_size: 40 }, me);
+    if (!check.note && !(data.drawing.length === 0 && ['cream', 'rose', 'sage', 'blue'].includes(paper))) return reply(400, { error: 'This drawing could not be saved.' });
+    packed = JSON.stringify(data.drawing); chunkStrokes = data.drawing.length;
+    if (packed.length > MAX_CHUNK_CHARS) return reply(413, { error: 'Part of this drawing is too large.' });
+  }
+  await env.DB.prepare('INSERT OR REPLACE INTO draft_chunks(draft,save_id,part,data,strokes,created) VALUES(?,?,?,?,?,?)').bind(id, save, part, packed, chunkStrokes, now).run();
   if (part !== total - 1) return reply(200, { ok: true });
 
   // Last chunk: commit.
@@ -153,8 +164,9 @@ async function saveChunk(data, id, me, rid, env, now) {
   if (counts.n !== total || !(counts.s >= 1) || counts.s > MAX_STROKES) {
     return reply(400, { error: counts.s > MAX_STROKES ? 'This page is too full to save.' : 'The save was incomplete. Try again; your changes are kept.' });
   }
-  const title = cleanTitle(data.title);
-  const thumb = typeof data.thumb === 'string' && data.thumb.length <= MAX_THUMB && THUMB.test(data.thumb) ? data.thumb : null;
+  const title = vault ? (typeof data.title === 'string' && data.title.length <= 600 && SEALED.test(data.title) ? data.title : '') : cleanTitle(data.title);
+  const thumb = vault ? (typeof data.thumb === 'string' && data.thumb.length <= 40000 && SEALED.test(data.thumb) ? data.thumb : null)
+    : (typeof data.thumb === 'string' && data.thumb.length <= MAX_THUMB && THUMB.test(data.thumb) ? data.thumb : null);
   if (!row && await liveCount(env, rid, me) >= MAX_LIVE) {
     await env.DB.prepare('DELETE FROM draft_chunks WHERE draft=? AND save_id=?').bind(id, save).run();
     return reply(409, { code: 'shelf_full', error: 'The shelf is full. Delete a draft to save another.' });

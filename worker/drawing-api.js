@@ -10,14 +10,20 @@ export async function uploadPost(path,data,person,env,room){
  const id=data.upload;if(typeof id!=='string'||!/^[a-f0-9]{64}$/.test(id))return result(400,{error:'Invalid drawing upload.'});
  const row=await env.DB.prepare('SELECT * FROM uploads WHERE id=? AND room_id=?').bind(id,room.id).first();
  if(path==='/api/uploads'){
-  const {nonce,paper,text_size:size,total}=data;if(typeof nonce!=='string'||nonce.length<8||nonce.length>80||!['cream','rose','sage','blue'].includes(paper)||![32,40,52].includes(size)||!Number.isInteger(total)||total<1||total>500)return result(400,{error:'Invalid drawing upload.'});
-  if(row&&(row.author!==person||row.nonce!==nonce||row.paper!==paper||row.text_size!==size||row.total!==total))return result(409,{error:'This upload differs from the saved draft.'});
-  const stale="SELECT u.id FROM uploads u WHERE u.room_id=? AND u.author=? AND u.created<? AND NOT EXISTS(SELECT 1 FROM notes n WHERE n.format=4 AND json_extract(n.drawing,'$.upload')=u.id)";const cutoff=Date.now()/1000-7*86400;
+  const {nonce,paper,text_size:size,total}=data,sealed=data.sealed===true,replace=sealed&&data.replace===true;if(typeof nonce!=='string'||nonce.length<8||nonce.length>80||!['cream','rose','sage','blue'].includes(paper)||![32,40,52].includes(size)||!Number.isInteger(total)||total<1||total>(sealed?40:500))return result(400,{error:'Invalid drawing upload.'});
+  if(!!room.vault!==sealed)return result(400,{error:sealed?'This wall is not locked yet.':'Please reload the page.'});
+  if(row&&(row.author!==person||row.nonce!==nonce||row.paper!==paper||row.text_size!==size||row.total!==total||row.sealed!==(sealed?1:0)))return result(409,{error:'This upload differs from the saved draft.'});
+  const stale="SELECT u.id FROM uploads u WHERE u.room_id=? AND u.author=? AND u.created<? AND NOT EXISTS(SELECT 1 FROM notes n WHERE n.format IN (4,6) AND json_extract(n.drawing,'$.upload')=u.id)";const cutoff=Date.now()/1000-7*86400;
   await env.DB.batch([env.DB.prepare('DELETE FROM drawing_chunks WHERE upload IN ('+stale+')').bind(room.id,person,cutoff),env.DB.prepare('DELETE FROM uploads WHERE id IN ('+stale+')').bind(room.id,person,cutoff)]);
-  await env.DB.prepare('INSERT OR IGNORE INTO uploads(id,author,nonce,paper,text_size,total,created,room_id) VALUES(?,?,?,?,?,?,?,?)').bind(id,person,nonce,paper,size,total,Date.now()/1000,room.id).run();return result(200,{ok:true});
+  await env.DB.prepare('INSERT OR IGNORE INTO uploads(id,author,nonce,paper,text_size,total,created,room_id,sealed,replace) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(id,person,nonce,paper,size,total,Date.now()/1000,room.id,sealed?1:0,replace?1:0).run();return result(200,{ok:true});
  }
  if(!row||row.author!==person)return result(404,{error:'Drawing upload not found.'});
  if(path==='/api/uploads/chunk'){
+  if(row.sealed){   // opaque ciphertext pieces: only their shape and size are checked
+   const piece=data.sealed;if(!Number.isInteger(data.part)||data.part<0||data.part>=row.total||typeof piece!=='string'||!piece.length||piece.length>150000||!/^[A-Za-z0-9_.-]+$/.test(piece))return result(400,{error:'Invalid drawing segment.'});
+   const packed=JSON.stringify([piece]),previous=await env.DB.prepare('SELECT data FROM drawing_chunks WHERE upload=? AND part=?').bind(id,data.part).first();if(previous&&previous.data!==packed)return result(409,{error:'Drawing segment changed. Your draft is kept.'});
+   await env.DB.prepare('INSERT OR IGNORE INTO drawing_chunks VALUES(?,?,?,?)').bind(id,data.part,packed,1).run();return result(200,{ok:true});
+  }
   if(!Number.isInteger(data.part)||data.part<0||data.part>=row.total||!Array.isArray(data.drawing)||!data.drawing.length||data.drawing.length>40)return result(400,{error:'Invalid drawing segment.'});
   const drawing=data.drawing.map(unpack);const check=validateNote({nonce:row.nonce,format:2,drawing,paper:row.paper,text_size:row.text_size},person);if(!check.note)return result(400,{error:'Invalid drawing segment.'});
   const packed=JSON.stringify(data.drawing);if(packed.length>180000)return result(413,{error:'Drawing segment is too large.'});
@@ -25,10 +31,18 @@ export async function uploadPost(path,data,person,env,room){
   await env.DB.prepare('INSERT OR IGNORE INTO drawing_chunks VALUES(?,?,?,?)').bind(id,data.part,packed,drawing.length).run();return result(200,{ok:true});
  }
  if(path!=='/api/uploads/commit')return result(404,{error:'Not found.'});
- const counts=await env.DB.prepare('SELECT count(*) n,sum(strokes) strokes FROM drawing_chunks WHERE upload=?').bind(id).first();if(counts.n!==row.total||counts.strokes<1||counts.strokes>500)return result(400,{error:'Drawing is incomplete. Try saving again; your draft is kept.'});
- const manifest={upload:id,chunks:row.total},key=dbNonce(room.id,row.nonce);const previous=await env.DB.prepare('SELECT * FROM notes WHERE nonce=?').bind(key).first();
+ const counts=await env.DB.prepare('SELECT count(*) n,sum(strokes) strokes FROM drawing_chunks WHERE upload=?').bind(id).first();if(counts.n!==row.total||counts.strokes<1||counts.strokes>(row.sealed?40:500))return result(400,{error:'Drawing is incomplete. Try saving again; your draft is kept.'});
+ const manifest={upload:id,chunks:row.total},key=dbNonce(room.id,row.nonce),fmt=row.sealed?6:4;const previous=await env.DB.prepare('SELECT * FROM notes WHERE nonce=? AND room_id=?').bind(key,room.id).first();
+ if(row.replace){   // lock an older plain note in place
+  if(!previous)return result(404,{error:'Note not found.'});
+  if(previous.format===6&&JSON.parse(previous.drawing).upload===id)return result(200,{ok:true,note:{...publicNote(previous),drawing:JSON.parse(previous.drawing)}});
+  if(previous.format>=5)return result(409,{error:'Already locked.'});
+  const stmts=[env.DB.prepare("UPDATE notes SET text='', drawing=?, format=6 WHERE id=? AND room_id=?").bind(JSON.stringify(manifest),previous.id,room.id)];
+  if(previous.format===4){const old=JSON.parse(previous.drawing).upload;stmts.push(env.DB.prepare('DELETE FROM drawing_chunks WHERE upload=?').bind(old),env.DB.prepare('DELETE FROM uploads WHERE id=? AND room_id=?').bind(old,room.id));}
+  await env.DB.batch(stmts);const done=await env.DB.prepare('SELECT * FROM notes WHERE id=?').bind(previous.id).first();return result(200,{ok:true,note:{...publicNote(done),drawing:JSON.parse(done.drawing)}});
+ }
  if(previous&&previous.author!==person)return result(409,{error:'This draft belongs to the other person.'});
- if(previous&&(previous.format!==4||JSON.parse(previous.drawing).upload!==id))return result(409,{code:'draft_changed',note:{...publicNote(previous),drawing:JSON.parse(previous.drawing)},error:'The earlier version was saved. Stick again to save these changes as a new note.'});
- await env.DB.prepare('INSERT OR IGNORE INTO notes(nonce,author,recipient,text,drawing,paper,created,format,text_size,room_id) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(key,person,person==='aryan'?'chat':'aryan','',JSON.stringify(manifest),row.paper,Date.now()/1000,4,row.text_size,room.id).run();
- const saved=await env.DB.prepare('SELECT * FROM notes WHERE nonce=?').bind(key).first();if(saved.format!==4||JSON.parse(saved.drawing).upload!==id)return result(409,{code:'draft_changed',note:{...publicNote(saved),drawing:JSON.parse(saved.drawing)},error:'The earlier version was saved. Stick again to save these changes as a new note.'});return result(201,{ok:true,note:{...publicNote(saved),drawing:JSON.parse(saved.drawing)}});
+ if(previous&&(previous.format!==fmt||JSON.parse(previous.drawing).upload!==id))return result(409,{code:'draft_changed',note:{...publicNote(previous),drawing:JSON.parse(previous.drawing)},error:'The earlier version was saved. Stick again to save these changes as a new note.'});
+ await env.DB.prepare('INSERT OR IGNORE INTO notes(nonce,author,recipient,text,drawing,paper,created,format,text_size,room_id) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(key,person,person==='aryan'?'chat':'aryan','',JSON.stringify(manifest),row.paper,Date.now()/1000,fmt,row.text_size,room.id).run();
+ const saved=await env.DB.prepare('SELECT * FROM notes WHERE nonce=?').bind(key).first();if(saved.format!==fmt||JSON.parse(saved.drawing).upload!==id)return result(409,{code:'draft_changed',note:{...publicNote(saved),drawing:JSON.parse(saved.drawing)},error:'The earlier version was saved. Stick again to save these changes as a new note.'});return result(201,{ok:true,note:{...publicNote(saved),drawing:JSON.parse(saved.drawing)}});
 }

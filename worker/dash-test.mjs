@@ -6,10 +6,12 @@ import { execFileSync } from 'node:child_process';
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const ADMIN = process.env.DUET_TEST_ADMIN || 'test-admin-pass';
 const RUN = Date.now().toString(36).slice(-5);
+import { sealRoomBody } from './vault-helper.mjs';
 const d1 = (sql) => execFileSync('npx', ['wrangler', 'd1', 'execute', 'duet', '--local', '--command', sql], { stdio: 'pipe' });
 const A = `first-${RUN}`, B = `second-${RUN}`;
 let jar = {};
 async function req(path, body, ip = '198.51.100.77') {
+  if (path === '/api/rooms' && body && body.passphrase !== undefined) body = await sealRoomBody(body);
   const cookie = Object.entries(jar).map(([k, v]) => `${k}=${v}`).join('; ');
   const res = await fetch(BASE + path, { method: body === undefined ? 'GET' : 'POST', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': ip, ...(cookie ? { Cookie: cookie } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
   for (const c of res.headers.getSetCookie()) { const [pair] = c.split(';'); const i = pair.indexOf('='); if (pair.slice(i + 1)) jar[pair.slice(0, i)] = pair.slice(i + 1); }

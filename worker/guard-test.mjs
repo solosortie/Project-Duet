@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import { execFileSync } from 'node:child_process';
+import { sealRoomBody } from './vault-helper.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const RUN = Date.now().toString(36).slice(-5);
@@ -17,6 +18,7 @@ function get(path, host, headers = {}) {
   });
 }
 async function post(path, body, headers = {}) {
+  if (path === '/api/rooms' && body && typeof body === 'object' && body.passphrase !== undefined) body = await sealRoomBody(body);
   const res = await fetch(BASE + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: typeof body === 'string' ? body : JSON.stringify(body) });
   let json = null; try { json = await res.json(); } catch { /* empty */ }
   return { status: res.status, json, headers: res.headers };
@@ -64,7 +66,7 @@ test('only JSON is accepted on writes', async () => {
 test('search engines: the dash front page is open, everything else is closed', async () => {
   const dash = await get('/robots.txt', 'dash.localhost:8787'), dev = await get('/robots.txt', 'dev.localhost:8787'), walls = await get('/robots.txt', 'localhost:8787');
   assert.match(dash.body, /Allow: \/\n/); assert.match(dash.body, /Sitemap: .*\/sitemap\.xml/);
-  assert.match(dev.body, /Disallow: \/\n/); assert.match(walls.body, /Disallow: \/\n/);
+  assert.match(dev.body, /Disallow: \/\n/); assert.match(walls.body, /^Allow: \/$/m); assert.doesNotMatch(walls.body, /Disallow: \/\n/);
   assert.equal((await get('/sitemap.xml', 'dash.localhost:8787')).status, 200);
   assert.equal((await get('/sitemap.xml', 'dev.localhost:8787')).status, 404);
   const devPage = await get('/', 'dev.localhost:8787');
@@ -104,4 +106,19 @@ test('robots.txt keeps the dash page and its styles and scripts crawlable', asyn
   assert.match(r.body, /Disallow: \/api\//);
   assert.doesNotMatch(r.body, /Disallow: \/dash\/\s/);   // dash.css and dash.js live under /dash/
   assert.match(r.body, /Sitemap: .*sitemap\.xml/);
+});
+
+test('error pages: a missing address and a server error have their own pages', async () => {
+  const missing = await get('/notice/', 'localhost:8787'), server = await get('/notice/error/', 'localhost:8787');
+  assert.equal(missing.status, 200); assert.match(missing.body, /data-notice="missing"/); assert.match(missing.body, /noindex/);
+  assert.equal(server.status, 200); assert.match(server.body, /data-notice="server"/);
+});
+
+test('credits: credits first, then license, then privacy; linked from the dash intro only', async () => {
+  const page = (await get('/credits/', 'dash.localhost:8787')).body;
+  assert.ok(page.indexOf('<h2>Credits') < page.indexOf('<h2>License') && page.indexOf('<h2>License') < page.indexOf('<h2>Privacy'));
+  assert.match(page, /github\.com\/solosortie\/Project-Duet/); assert.match(page, /AGPL-3\.0/);
+  assert.doesNotMatch(page, /Lettering/);
+  assert.match((await get('/', 'dash.localhost:8787')).body, /href="\/credits\/"/);
+  assert.doesNotMatch((await get('/', 'localhost:8787')).body, /credits/);
 });

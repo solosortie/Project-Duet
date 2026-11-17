@@ -13,12 +13,12 @@ const uid=()=>Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toStrin
 async function rawApi(path,data){
   if(window.DuetDev)return window.DuetDev.request(path,data);
   let r;const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(),15000);try{r=await fetch('/api/'+path,{signal:controller.signal,method:data?'POST':'GET',headers:{...(data?{'Content-Type':'application/json'}:{}),...(window.DUET_ROOM?{'X-Duet-Room':window.DUET_ROOM.slug}:{})},body:data?JSON.stringify(data):undefined})}catch{throw Error('Connection lost. Your draft is still on this device.')}finally{clearTimeout(deadline)}
-  const result=await r.json();if(!r.ok){if(r.status===401&&path!=='unlock'){flushDraft();person=null;$('#editor').close();show('welcome')}const error=Error(result.error||'Could not save. Please try again.');error.code=result.code;error.note=result.note;throw error}return result;
+  let result;try{result=await r.json()}catch{throw Error('The wall is having trouble right now. Try again in a moment.')}if(!r.ok){if(r.status===401&&path!=='unlock'){flushDraft();person=null;$('#editor').close();show('welcome')}const error=Error(result.error||'Could not save. Please try again.');error.code=result.code;error.note=result.note;throw error}return result;
 }
 async function hydrateAll(list){const out=new Array(list.length);let next=0;const lane=async()=>{while(next<list.length){const k=next++;out[k]=await DrawingStore.hydrate(list[k],rawApi)}};await Promise.all(Array.from({length:Math.min(4,list.length)},lane));return out}
 async function api(path,data){try{const result=await rawApi(path,data);if(result.notes)result.notes=await hydrateAll(result.notes);if(result.note)result.note=await DrawingStore.hydrate(result.note,rawApi);return result}catch(error){if(error.note)error.note=await DrawingStore.hydrate(error.note,rawApi);throw error}}
 function show(view){currentView=view;window.dispatchEvent(new Event('duet:view'));requestAnimationFrame(placeMeadow);$('#identity-avatar').src='assets/portrait-'+animalOf(person)+'.webp';document.body.dataset.view=view;['welcome','choose','walls'].forEach(v=>$('#'+v).hidden=v!==view);$('#identity').hidden=!person;$('#identity-label').textContent=person?'Logged in as '+titleName(person):'';$('#switch').hidden=view!=='walls';$('#lock').hidden=view==='welcome';updateFavicon();}
-function updateFavicon(){const href=person?'assets/favicon-'+animalOf(person)+'.png':'assets/favicon-cat.png';let link=document.querySelector('link[rel="icon"]');if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link)}link.type=href.endsWith('.png')?'image/png':'image/svg+xml';link.href=href;}
+function updateFavicon(){const href=person?'assets/favicon-'+animalOf(person)+'.png':'assets/favicon-deer.png';let link=document.querySelector('link[rel="icon"]');if(!link){link=document.createElement('link');link.rel='icon';document.head.appendChild(link)}link.type=href.endsWith('.png')?'image/png':'image/svg+xml';link.href=href;}
 // One small paper slip for every passing message. `warn` is for things that went wrong or need a nudge; everything else is a quiet confirmation.
 let toastTimer=0;
 // It lives in the browser's top layer (popover), so it also shows above the editor and the drafts shelf, which a plain fixed element cannot.
@@ -45,9 +45,9 @@ async function prepareSound(){soundContext??=new (window.AudioContext||window.we
 document.addEventListener('pointerdown',()=>{prepareSound().catch(()=>{})},{once:true,passive:true});
 async function squish(){try{const now=performance.now();if(now-lastClick<45)return;lastClick=now;const context=await prepareSound();if(context.state!=='running')return;const t=context.currentTime+.008,osc=context.createOscillator(),gain=context.createGain(),filter=context.createBiquadFilter();osc.type='triangle';osc.frequency.setValueAtTime(580,t);osc.frequency.exponentialRampToValueAtTime(190,t+.105);filter.type='lowpass';filter.frequency.value=1200;gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.055,t+.012);gain.gain.exponentialRampToValueAtTime(.0001,t+.14);osc.connect(filter).connect(gain).connect(context.destination);osc.start(t);osc.stop(t+.15);osc.onended=()=>{osc.disconnect();filter.disconnect();gain.disconnect()}}catch{}}
 document.addEventListener('click',e=>{if(e.target.closest('button:not(:disabled)'))squish()},true);
-$('#unlock').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;$('#unlock-error').textContent='';startMusic();try{await api('unlock',{passphrase:$('#passphrase').value});$('#passphrase').value='';show('choose')}catch(e){$('#unlock-error').textContent=e.message}finally{b.disabled=false}};
-$$('[data-person]').forEach(b=>b.onclick=async()=>{$$('[data-person]').forEach(choice=>choice.disabled=true);$('#choose-error').textContent='';try{b.classList.add('picked');await Promise.all([api('person',{person:b.dataset.person}),new Promise(resolve=>setTimeout(resolve,reducedMotion.matches?0:280))]);person=b.dataset.person;notes.clear();hasMore=false;syncCursor=0;initialized=false;render();show('walls');setWall(person);await sync();startMusic()}catch(e){$('#choose-error').textContent=e.message}finally{$$('[data-person]').forEach(choice=>choice.disabled=false);b.classList.remove('picked')}});
-$('#switch').onclick=()=>show('choose');$('#home').onclick=()=>{if(person)show('walls')};$('#lock').onclick=async()=>{try{await api('logout',{});person=null;notes.clear();hasMore=false;syncCursor=0;initialized=false;render();show('welcome');audio.pause();audioUI()}catch(e){toast(e.message,1)}};
+$('#unlock').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;$('#unlock-error').textContent='';startMusic();try{await openWall($('#passphrase').value);$('#passphrase').value='';show('choose')}catch(e){$('#unlock-error').textContent=e.message}finally{b.disabled=false}};
+$$('[data-person]').forEach(b=>b.onclick=async()=>{$$('[data-person]').forEach(choice=>choice.disabled=true);$('#choose-error').textContent='';try{b.classList.add('picked');await Promise.all([api('person',{person:b.dataset.person}),new Promise(resolve=>setTimeout(resolve,reducedMotion.matches?0:280))]);person=b.dataset.person;notes.clear();hasMore=false;syncCursor=0;initialized=false;render();show('walls');setWall(person);await sync();startMusic();migrateWall()}catch(e){$('#choose-error').textContent=e.message}finally{$$('[data-person]').forEach(choice=>choice.disabled=false);b.classList.remove('picked')}});
+$('#switch').onclick=()=>show('choose');$('#home').onclick=()=>{if(person)show('walls')};$('#lock').onclick=async()=>{try{await api('logout',{});await Vault.clear(vaultSlug());person=null;notes.clear();hasMore=false;syncCursor=0;initialized=false;render();show('welcome');audio.pause();audioUI()}catch(e){toast(e.message,1)}};
 function setWall(owner){$$('.wall').forEach(w=>w.classList.toggle('active',w.dataset.owner===owner));$$('[data-wall]').forEach(b=>{b.classList.toggle('active',b.dataset.wall===owner);b.setAttribute('aria-pressed',String(b.dataset.wall===owner))})}
 $$('[data-wall]').forEach(b=>b.onclick=()=>setWall(b.dataset.wall));
 // Strokes remain editable vectors in SQLite; canvases are just their presentation.
@@ -176,7 +176,7 @@ let heights=store.get('duet-heights',{})||{};
 function rememberHeight(key,h){if(!h)return;heights[key]=Math.round(h);const keys=Object.keys(heights);for(const k of keys.slice(0,Math.max(0,keys.length-300)))delete heights[k];store.set('duet-heights',heights)}
 function swapCard(card,fresh,key){const before=card.getBoundingClientRect(),above=before.bottom<=0;card.replaceWith(fresh);if(above)window.scrollBy(0,fresh.getBoundingClientRect().height-before.height);rememberHeight(key,fresh.getBoundingClientRect().height)}
 function pendingCard(card,n){
-  const key=n.drawing.upload,holder=document.createElement('div');holder.className='art-holder';holder.style.height=(heights[key]?Math.max(60,heights[key]-40):220)+'px';card.append(holder);
+  const key=(n.drawing&&n.drawing.upload)||('n'+n.id),holder=document.createElement('div');holder.className='art-holder';holder.style.height=(heights[key]?Math.max(60,heights[key]-40):220)+'px';card.append(holder);
   const date=document.createElement('time');date.dateTime=new Date(n.created*1000).toISOString();date.textContent=new Date(n.created*1000).toLocaleDateString(undefined,{month:'short',day:'numeric',timeZone:(window.DUET_ROOM&&window.DUET_ROOM.timezone)||'Asia/Kolkata'});card.append(date);
   const load=()=>queueHydrate(async()=>{try{const full=await DrawingStore.hydrate(n,rawApi);if(!card.isConnected)return;notes.set(n.id,full);swapCard(card,makeCard(full,false,false),key)}catch{holder.__paint=load;setTimeout(()=>lazyPaint?lazyPaint.observe(holder):load(),6000)}});
   holder.__paint=load;if(lazyPaint)lazyPaint.observe(holder);else load();return card}
@@ -197,7 +197,7 @@ function tapeLayouts(n){tapeRolls(n+2);const r=TAPE_SEQ.rolls,l=TAPE_SEQ.layouts
 function addTapes(card,hash,idx){let roll,layout;if(Number.isInteger(idx)&&idx>=0&&idx<=100000){tapeLayouts(idx);roll=TAPE_SEQ.rolls[idx];layout=TAPE_SEQ.layouts[idx]}else{const h=tapeMix(hash>>>0),list=TAPE_LAYOUTS[TAPE_ROLLS[h%4]];roll=TAPE_ROLLS[h%4];layout=list[tapeMix(h+1)%list.length]}card.dataset.tape=layout;for(let i=0;i<(TAPE_PIECES[layout]||2);i++){const tape=document.createElement('img');tape.src='assets/tape-'+roll+'.webp';tape.alt='';tape.className='tape '+roll+' t'+(i+1);card.append(tape)}}
 function makeCard(n,preview=false,lazy=false){const card=document.createElement('article');card.className='note '+n.paper;card.dataset.id=n.id||'';const hash=[...(n.nonce||String(n.id))].reduce((value,ch)=>Math.imul(value^ch.charCodeAt(0),16777619)>>>0,2166136261);addTapes(card,hash,/^\d+$/.test(String(n.id))?Number(n.id):null);
   if(n.format===3){const text=document.createElement('p');text.className='written-note';text.dataset.size=n.text_size||40;text.textContent=n.text;card.append(text)}
-  if(n.format===4&&n.drawing&&n.drawing.upload&&!preview)return pendingCard(card,n);
+  if((n.format===4||n.format===5||n.format===6)&&!preview)return pendingCard(card,n);
   let drawing=n.format!==3&&!n.text?croppedStrokes(n.drawing,n.format===2?720:650,lazy):null;
   if(!drawing&&n.format!==3){const source=document.createElement('canvas');source.width=1000;source.height=n.format===2?720:650;
   if(n.format===2)compose(source,n);else{if(n.text){const p=document.createElement('p');p.textContent=n.text;card.append(p)}drawStrokes(source,n.drawing)}
@@ -214,6 +214,27 @@ function render(){
   }
   $('#older').hidden=!hasMore;
   if(anchor?.isConnected&&scrollY>100)scrollBy(0,anchor.getBoundingClientRect().top-anchorTop);
+}
+/* Locked walls: the passcode never leaves this page. A proof and an encryption key are made from it here. */
+const vaultSlug=()=>window.DUET_ROOM?window.DUET_ROOM.slug:'home';
+async function openWall(pass){
+  if(!(window.crypto&&crypto.subtle))throw Error('Open this page over https so your notes can be unlocked.');
+  let info={vault:0};try{info=(await rawApi('vault'))||info}catch{/* an older server: open the old way */}
+  if(info.vault){const keys=await Vault.derive(pass,info.salt);await api('unlock',{proof:keys.proof});Vault.use(keys);await Vault.save(vaultSlug(),keys);return}
+  await api('unlock',{passphrase:pass});await lockWall(pass);   // a wall made before locking existed is locked the first time it is opened
+}
+async function lockWall(pass){
+  const salt=Vault.newSalt();let keys=await Vault.derive(pass,salt);
+  try{await rawApi('vault/upgrade',{salt,proof:keys.proof})}catch{try{const info=await rawApi('vault');if(!info.vault)return;keys=await Vault.derive(pass,info.salt)}catch{return}}   // someone locked it a moment earlier: use their salt
+  Vault.use(keys);await Vault.save(vaultSlug(),keys);
+}
+// Older readable notes are sealed one by one, in place, once the wall is locked. A failure just means it tries again next time.
+let migrating=false;
+async function migrateWall(){
+  if(migrating||!person||!window.Vault||!Vault.keys())return;migrating=true;
+  try{let before=null;for(;;){const page=await rawApi('notes'+(before?'?before='+before:''));
+    for(const n of page.notes){if(n.format>=5)continue;const h=await DrawingStore.hydrate(n,rawApi);await DrawingStore.reseal({...h,author:n.author,nonce:n.nonce},n.format,rawApi)}
+    if(!page.more||!page.notes.length)break;before=Math.min(...page.notes.map(n=>n.id))}}catch{/* retried at the next visit */}finally{migrating=false}
 }
 async function sync(older=false){
   if(syncing||!person)return;syncing=true;const owner=person;
@@ -403,7 +424,7 @@ function busy(value){posting=value;$$('#editor button,#editor input,#editor text
 $('#post').onclick=async()=>{if(posting)return;commitText();const payload=composition(),check=document.createElement('canvas');check.width=1000;check.height=720;compose(check,payload);if(!cropped(check)){$('#post-error').textContent='Write or draw something first.';return}const pendingDraft=flushDraft();busy(true);await pendingDraft;$('#draft-status').textContent='Sticking…';$('#post-error').textContent='';try{const result=await DrawingStore.save(payload,api,(done,total)=>{$('#draft-status').textContent='Sending '+done+'/'+total});notes.set(result.note.id,result.note);await Drafts.remove(draftKey()).catch(()=>{});store.remove(draftKey());if(draftId){Shelf.stuck(draftId);draftId=null;draftBase=0;draftTitle=''}$('#editor').close();window.dispatchEvent(new Event('duet:posted'));setWall(person==='aryan'?'chat':'aryan');render();}catch(e){if(e.code==='draft_changed'){notes.set(e.note.id,e.note);nonce=uid();render()}$('#post-error').textContent=e.message;$('#draft-status').textContent='Not posted · kept';}finally{busy(false);if($('#editor').open)flushDraft()}};
 document.fonts.addEventListener?.('loadingdone',()=>{if($('#editor').open){baseDirty=true;paintLive();placeTextBox()}});
 
-(async()=>{await document.fonts.load('40px "Duet Script"');try{const s=await api('session');person=s.person;if(person){show('walls');setWall(person);await sync()}else show('choose')}catch{show('welcome')}audioUI()})();
+(async()=>{await document.fonts.load('40px "Duet Script"');try{const info=(await rawApi('vault').catch(()=>null))||{vault:0};if(info.vault){await Vault.restore(vaultSlug());if(!Vault.keys()){show('welcome');audioUI();return}}const s=await api('session');person=s.person;if(person){show('walls');setWall(person);await sync();migrateWall()}else show('choose')}catch{show('welcome')}audioUI()})();
 
 // The nib: what the pointer will leave behind, drawn at its true size so it grows and shrinks with the size slider.
 // Pencil and ink are round, the marker is its slanted chisel, the eraser is its round footprint. A finger covers the nib, so touch only shows the eraser while pressed.
@@ -421,4 +442,5 @@ $('#pen-size').addEventListener('input',()=>{if(lastNib&&!nib.hidden)nibPosition
 
 function placeMeadow(){const entry=currentView==='welcome'||currentView==='choose';if(!entry){document.body.style.minHeight='';return}const target=currentView==='welcome'?$('#unlock'):$('.choices');const bottom=target.getBoundingClientRect().bottom+scrollY;const y=Math.max(innerHeight*.74,bottom+86);document.body.style.setProperty('--meadow-y',y+'px');document.body.style.minHeight=Math.max(innerHeight,y+70)+'px'}
 new ResizeObserver(placeMeadow).observe($('.brand-scene'));new ResizeObserver(placeMeadow).observe($('.choices'));new ResizeObserver(placeMeadow).observe($('#unlock'));window.addEventListener('resize',placeMeadow);document.fonts.ready.then(placeMeadow);
+
 

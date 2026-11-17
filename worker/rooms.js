@@ -66,17 +66,19 @@ export async function createRoom(request, data, env, ctx) {
   const names = Array.isArray(data.names) ? data.names.map(clean) : [];
   const animals = Array.isArray(data.animals) ? data.animals : [];
   const slug = typeof data.slug === 'string' ? data.slug.toLowerCase() : '';
-  const pass = typeof data.passphrase === 'string' ? data.passphrase : '';
+  const vin = data.vault && typeof data.vault === 'object' ? data.vault : {};
+  const vsalt = typeof vin.salt === 'string' ? vin.salt : '', vproof = typeof vin.proof === 'string' ? vin.proof : '';
   const tz = validTimezone(data.timezone) ? data.timezone : 'UTC';
   if (names.length !== 2 || !names.every((n) => NAME.test(n)) || names[0].toLowerCase() === names[1].toLowerCase()) return reply(400, { error: 'Check the names.' });
   if (animals.length !== 2 || !animals.every((a) => ANIMALS.includes(a))) return reply(400, { error: 'Choose two animals.' });
   const dynamic = data.dynamic === undefined ? 'partners' : data.dynamic;
   if (!DYNAMICS.includes(dynamic)) return reply(400, { error: 'Choose a dynamic.' });
   if (!slugFree(slug)) return reply(400, { error: 'That address is not available.' });
-  if ([...pass].length < 3 || [...pass].length > 64) return reply(400, { error: 'Passphrase needs at least three characters.' });
+  // The passcode never reaches the server: the page sends a salt it made and a proof derived from the passcode.
+  if (!/^[a-f0-9]{32}$/.test(vsalt) || !/^[a-f0-9]{64}$/.test(vproof)) return reply(400, { error: 'Please reload this page and try again.' });
 
   const twin = await env.DB.prepare('SELECT status,salt,pass_hash,name_a,name_b FROM rooms WHERE slug=?').bind(slug).first();
-  if (twin && twin.status === 'pending' && twin.name_a === names[0] && twin.name_b === names[1] && await checkPass(twin.pass_hash, twin.salt, pass)) {
+  if (twin && twin.status === 'pending' && twin.name_a === names[0] && twin.name_b === names[1] && twin.salt === vsalt && await checkPass(twin.pass_hash, twin.salt, vproof)) {
     const ticket = newToken();
     await env.DB.prepare('UPDATE rooms SET ticket=? WHERE slug=?').bind(await sha256(ticket), slug).run();
     return reply(200, { ok: true, slug, status: 'pending', repeat: true, ticket });
@@ -91,10 +93,10 @@ export async function createRoom(request, data, env, ctx) {
   const pending = await env.DB.prepare("SELECT count(*) n FROM rooms WHERE status='pending'").first();
   if (pending.n >= 200) return reply(503, { error: 'Requests are paused for now.' });
 
-  const salt = newToken().slice(0, 22), ticket = newToken();
+  const salt = vsalt, ticket = newToken();
   try {
-    await env.DB.prepare('INSERT INTO rooms(slug,status,dynamic,name_a,name_b,animal_a,animal_b,tz,salt,pass_hash,ip_hash,created,ticket) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)')
-      .bind(slug, 'pending', dynamic, names[0], names[1], animals[0], animals[1], tz, salt, await hashPass(salt, pass, kdfIter(env)), ipHash, now, await sha256(ticket)).run();
+    await env.DB.prepare('INSERT INTO rooms(slug,status,dynamic,name_a,name_b,animal_a,animal_b,tz,salt,pass_hash,ip_hash,created,ticket,vault) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,1)')
+      .bind(slug, 'pending', dynamic, names[0], names[1], animals[0], animals[1], tz, salt, await hashPass(salt, vproof, 0), ipHash, now, await sha256(ticket)).run();
   } catch (e) {
     if (/UNIQUE/i.test(String(e && e.message))) return reply(409, { error: 'That address is taken.' });
     throw e;
@@ -199,4 +201,21 @@ export async function adminRoute(request, url, data, env, secure) {
     return reply(200, { ok: true });
   }
   return reply(404, { error: 'Not found.' });
+}
+
+// Public: whether a wall is locked (vault) and the salt its browser key is made from. The salt is not a secret.
+export async function vaultInfo(slug, env) {
+  const room = slug ? await getRoom(env, slug) : null;
+  if (!room || room.status !== 'live') return reply(404, { error: 'No such room.' });
+  return reply(200, room.vault ? { vault: 1, salt: room.salt } : { vault: 0 });
+}
+// A wall made before locking existed is locked the first time someone opens it: the browser sends a new salt and proof.
+export async function upgradeVault(data, session, env) {
+  const salt = typeof data.salt === 'string' ? data.salt : '', proof = typeof data.proof === 'string' ? data.proof : '';
+  if (!/^[a-f0-9]{32}$/.test(salt) || !/^[a-f0-9]{64}$/.test(proof)) return reply(400, { error: 'Invalid request.' });
+  const done = await env.DB.prepare('UPDATE rooms SET vault=1, salt=?, pass_hash=? WHERE id=? AND vault=0').bind(salt, await hashPass(salt, proof, 0), session.room_id).run();
+  const row = await env.DB.prepare('SELECT slug, salt FROM rooms WHERE id=?').bind(session.room_id).first();
+  forget(row.slug);
+  if (!done.meta || !done.meta.changes) return reply(409, { error: 'Already locked.', vault: 1, salt: row.salt });
+  return reply(200, { ok: true });
 }

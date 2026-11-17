@@ -409,7 +409,7 @@ body:is([data-view=welcome],[data-view=choose]) main{padding-bottom:100px}
 
 }
 .project-word{position:relative;display:inline-block}
-.wordmark .project-word .brand-cat{display:block;position:absolute;width:56%;height:auto;left:53%;right:auto;top:.11em;bottom:auto;transform:translateY(-64%);pointer-events:none;max-width:none}
+.wordmark .project-word .brand-cat{display:block;position:absolute;width:56%;height:auto;left:44%;right:auto;top:.11em;bottom:auto;transform:translateY(-64%);pointer-events:none;max-width:none}
 body[data-view=walls] .wordmark .brand-cat{display:none}
 body:is([data-view=welcome],[data-view=choose]){position:relative;background-color:#e4ebd7}
 body:is([data-view=welcome],[data-view=choose]) main{position:static;padding-bottom:0}
@@ -1021,9 +1021,11 @@ body[data-streak=broken] #clock-face .clock-wash{fill:#85745f;opacity:.12}
 #settings .music-buttons{display:flex;gap:10px}#settings #mute{flex:1}
 #settings input[type=range]{accent-color:#66745a}
 
-/* hand-made scrollbars, everywhere */
-*{scrollbar-width:thin;scrollbar-color:#8d745b88 transparent}
-::-webkit-scrollbar{width:9px;height:9px}
+/* scrollbars: soft, thin and in the page's colours, everywhere */
+*{scrollbar-width:thin;scrollbar-color:#bfa882 transparent}
+::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#8d745b88;border-radius:9px;border:2px solid transparent;background-clip:content-box}
-::-webkit-scrollbar-thumb:hover{background:#594739aa;background-clip:content-box;border:2px solid transparent}
+::-webkit-scrollbar-thumb{background:#c4ad86;border:2.5px solid transparent;background-clip:padding-box;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#a88f66;background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+

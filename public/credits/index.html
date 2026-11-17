@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Credits, license and privacy · Project Duet</title>
+<meta name="description" content="Who and what Project Duet is made with, how it is licensed, and what it keeps and cannot read.">
+<meta name="robots" content="index,follow"><meta name="theme-color" content="#c9dde8">
+<link rel="canonical" href="https://dash.purrpause.space/credits/">
+<link rel="icon" href="/assets/favicon-deer.png" type="image/png"><link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preload" href="/assets/duet-hand.ttf" as="font" type="font/ttf" crossorigin><link rel="preload" href="/assets/duet-hand-bold.ttf" as="font" type="font/ttf" crossorigin>
+<style>
+@font-face{font-family:'Duet Hand';src:url(/assets/duet-hand.ttf) format('truetype');font-display:swap}
+@font-face{font-family:'Duet Hand Bold';src:url(/assets/duet-hand-bold.ttf) format('truetype');font-display:swap}
+:root{--ink:#594739;--soft:#7a6a58;--paper:#fff6e5;--line:#59473966;--title:'Duet Hand',ui-rounded,'Trebuchet MS',sans-serif;--body:'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#bfa882 transparent}
+html{background:linear-gradient(#c9dde8,#e6efe9 55%,#dfe8cf) fixed;min-height:100%}
+body{margin:0;padding:max(18px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom));color:var(--ink);font:16px/1.6 var(--body);letter-spacing:.02em}
+main{max-width:620px;margin:0 auto}
+.top{margin:2px 0 18px;font-size:15px}.top a{color:var(--ink);text-underline-offset:3px}
+/* titles match the dash: Duet Hand, capitals, a touch of stroke for weight */
+h1,h2{font-family:var(--title);font-weight:400;text-transform:uppercase;-webkit-text-stroke:.7px currentColor;paint-order:stroke fill}
+h1{font-size:clamp(26px,6.4vw,34px);line-height:1.15;letter-spacing:.04em;margin:0 0 18px}
+h2{font-size:21px;letter-spacing:.05em;margin:0 0 10px}
+.card{background:var(--paper);border:2px solid var(--ink);border-radius:14px;padding:18px 20px 14px;margin:0 0 16px;box-shadow:0 3px 0 var(--line)}
+p{margin:0 0 10px}ul{margin:0 0 6px;padding-left:20px}li{margin:0 0 7px}
+a{color:var(--ink);text-underline-offset:3px;overflow-wrap:anywhere}
+.small{font-size:14.5px;color:var(--soft)}
+details{margin:2px 0 6px}summary{cursor:pointer;padding:6px 0;text-underline-offset:3px;text-decoration:underline}
+details ul{margin-top:6px}
+@media(max-width:420px){body{font-size:15.5px}.card{padding:15px 15px 11px}}
+</style></head><body><main>
+<div class="top"><a href="/">&larr; Project Duet</a></div>
+<h1>About Project Duet</h1>
+
+<section class="card"><h2>Credits</h2>
+<ul><li><strong>Art and development:</strong> <a href="https://instagram.com/solo.sortie" rel="noopener">@solo.sortie</a></li>
+<li><strong>Code and automation:</strong> written with AI coding assistants: Claude (Anthropic), GPT Astra, Argon and Grok 4.1.</li>
+<li><strong>Hosting and services:</strong> Cloudflare (Workers, D1 database, static assets, DNS and certificates) and GitHub.</li>
+<li><strong>Fonts:</strong> Caveat by The Caveat Project Authors (SIL Open Font License 1.1). Duet Hand and Duet Text are original to this project.</li>
+<li><strong>Music:</strong> <a href="https://pixabay.com/users/andriih-56549121/" rel="noopener">Andriih</a> on Pixabay.</li>
+<li><strong>Tools:</strong> Wrangler (Cloudflare), for building and deploying.</li></ul>
+<p class="small">Everything else is plain HTML, CSS and JavaScript written for this project. There are no analytics, trackers, ads, third-party scripts or web fonts.</p></section>
+
+<section class="card"><h2>License</h2>
+<p>The code is open source under the <a href="https://www.gnu.org/licenses/agpl-3.0.html" rel="noopener">GNU AGPL-3.0</a> and lives on <a href="https://github.com/solosortie/Project-Duet" rel="noopener">GitHub</a>. You are free to read it, run it, change it and contribute. If you run a changed copy as a service, you must share your changes under the same license.</p>
+<p><strong>Not covered by that license:</strong> the art, the Duet Hand and Duet Text fonts and the project name (all rights reserved), and the music (Pixabay's license, not part of the repository).</p></section>
+
+<section class="card"><h2>Privacy &amp; data</h2>
+<p>I keep your names, animals and address, when each note was made and by whom, and scrambled versions of your passcode and network address. Your notes, drawings and drafts are locked in your browser with your passcode before they are sent, so I can't read them. The note you send with a request is the one thing I can read.</p>
+<details><summary>The honest limits</summary>
+<ul><li>Anyone with the address and passcode can read the wall. A short passcode can be guessed by someone holding the database, so a longer one is safer. The dice button makes one.</li>
+<li>A lost passcode can't be recovered, and neither can the notes locked with it.</li>
+<li>Cloudflare, which hosts the site, sees network traffic and keeps request logs.</li>
+<li>The pages are code I serve, so a changed version could capture passcodes. The code is public so it can be checked.</li>
+<li>Walls made before locking existed are locked the first time someone opens them.</li></ul></details></section>
+</main></body></html>

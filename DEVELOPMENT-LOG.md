@@ -209,10 +209,41 @@ Based on the supplied Downloads/project-duet.zip, preserving its UI/backend chan
 - Tests: `npm test` now also runs `guard-test.mjs` (parallel-guess, robots, headers, limits) and `hash-test.mjs` (hashing) runs with the unit tests.
 - Production: set `IP_SALT` as a secret (`npx wrangler secret put IP_SALT`) and apply migrations `0005_drafts.sql` and `0005_request_note.sql`.
 
-## Final polish round
-- Intro card: titles per page (What this is / How to start / Please know), redundant inner headings removed, one bottom row (Back, dots, Next / Continue) with consistent sizes, title shrinks while the intro is open so the third page has room, page never scrolls (card scrolls inside only at 320px and phone landscape).
-- "A note for the developer": concise line, neutral placeholder.
-- Copy button on the final card copies the address and passphrase; copy-address when no passphrase is held.
-- Custom thin scrollbars on all three sites.
-- Root move: after admin move-home the root serves the dash in place (no redirect), and robots, sitemap and indexing treat it as public. Assets are fetched as /dash/ and /devsite/ so no redirect to /dash/ happens.
-- Cat shifted right onto "ECT" (dash.css .wm img, style.css .brand-cat).
+## Polish round
+
+- The optional note is "A note for the developer"; its hint says a short note might help the request get accepted, and the pre-filled example is gone.
+- Intro card: each page carries its own title (What this is, How to start, Please know) with no repeated underlined heading. Buttons are one row, one height. Only pages 2 and 3 may scroll inside the card on very small screens, and page 1 never does.
+- Swap on the names step uses the original flying-animals animation again.
+- Custom thin scrollbars on every page (`dash.css`, `style.css`).
+- The copy button on the waiting screen copies the wall address and the passphrase.
+- A first-time visitor sees the intro, then the first card's note opens once (skipped if it would cover the buttons).
+- Cat sits on the ECT of PROJECT on the dash, review, waiting and walls pages.
+- Moving the original wall (review site, "move home") now makes the main address show the dashboard itself, with no redirect to the dash subdomain. The page's canonical, preview image and structured data are rewritten to the address it is served from, and `robots.txt` and the sitemap on the main address become indexable once the dash lives there. `DUET_ROOT_HOST` names the main address.
+- `/` on the dash and review hosts is served in place; before, it redirected to `/dash/` and `/devsite/`.
+
+## Small polish
+
+- "Passphrase" is now "passcode" in the dash (intro, steps, copy text, the creation error) and on the review site's sign-in. API field names are unchanged.
+- The cat sits a little further right on the ECT (dash, review, waiting and walls pages).
+- The deer is the base favicon and app icon (tab icon, apple-touch icon and manifest icons). The walls page still switches to the chosen animal.
+- Dialog titles leave room for the close button, so "A note for the developer" is no longer hidden.
+
+## Locked walls, credits, license
+
+- **Encryption.** `public/vault.js` derives, from the passcode and a public per-wall salt (PBKDF2, 300,000 rounds), a login proof, an AES-GCM key and a repeatability key. The passcode never leaves the browser. New walls are created with a salt and proof (`rooms.vault=1`); the server stores only a hash of the proof. Notes (format 5 inline, format 6 in pieces), drawings, drafts (strokes, titles, preview pictures) are sealed before upload; the server checks only shape and size. Sealing is repeatable, so retries stay idempotent.
+- **Older walls.** Opened once the old way, then locked: the browser sends a new salt and proof (`/api/vault/upgrade`), then seals each old note in place (`replace`). A failure is retried at the next visit.
+- **Migration** `0006_vault.sql` adds `rooms.vault`, `uploads.sealed` and `uploads.replace`.
+- **Keys** stay in the browser (non-extractable, IndexedDB) so a reload does not ask again; lock removes them. If they are gone, the unlock screen returns.
+- **Search.** `robots.txt` now lets every host except the review site be crawled; private walls stay unindexed through `noindex`, which a blocked crawler could never read (the cause of "Blocked by robots.txt").
+- **Files.** `LICENSE` (AGPL-3.0-only), `ASSETS-LICENSE.md`, `NOTICE.md`, `CONTRIBUTING.md`, `README.md`, `DEPLOY.md`, `.gitignore` (music is not redistributed), `.dev.vars.example`. The committed passcode hash is out of `wrangler.jsonc`; set `DUET_PASSPHRASE` as a secret for an original home wall. The old Python and Docker self-hosting files are removed.
+- **Credits** page at `/credits/` (what is kept, what cannot be read, the honest limits, license, credits), linked from the intro and both settings dialogs.
+- **Tests.** `vault-test.mjs` checks the database holds no readable trace after notes, large drawings, drafts and an upgrade; `hash-test.mjs` the hashing; room tests use older-style walls for the isolation and streak checks.
+
+## Final polish
+- Credits page: credits first, then license, then a light "Privacy & data" with the limits folded away; titles use the dash's heading style; GitHub linked. It is linked from the dash only (intro and settings).
+- A proper page for a missing address, a lost connection and server trouble (`/notice/`, `/notice/error/`), instead of the "Nobody here yet" hold page. Unknown addresses and invalid paths show it; pending walls still show the waiting page.
+- Pages served by the Worker show the error page (503) rather than raw text when storage fails.
+
+## README
+- A full README with a centered banner, screen recordings of making and using a wall (`docs/media/create.gif`, `use.gif`), an animated diagram of how a note is locked (`locks.svg`), the palette, run and deploy steps, and a developer's note. The media were captured from the running site, through the real host names (`docs/media/` is not served by the Worker).
+- The creation and sign-in pages now say plainly when a page is not on https, because browsers only allow encryption on secure pages.

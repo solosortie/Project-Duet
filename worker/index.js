@@ -5,7 +5,7 @@ import { validateNote } from './validate.js';
 import { reply, sha256, safeEqual, newToken, noteJson, dbNonce, tzOffsetSeconds, hashPass, checkPass, kdfIter } from './util.js';
 import { draftsGet, draftsPost, draftStamp } from './drafts-api.js';
 import { guardEdge, dbLimit, dbHit, dbRefund, slow, sweep, who, wait } from './guard.js';
-import { getRoom, homeSlug, roomInfo, requestStatus, slugCheck, createRoom, setRequestNote, adminRoute, slugShape, cookieName, SLUG_HEADER } from './rooms.js';
+import { vaultInfo, upgradeVault, getRoom, homeSlug, roomInfo, requestStatus, slugCheck, createRoom, setRequestNote, adminRoute, slugShape, cookieName, SLUG_HEADER } from './rooms.js';
 
 const DEFAULT_MAX_BODY = 600000; // the Python server's limit; wrangler.jsonc lowers it for the free plan's 10 ms CPU cap
 const SESSION_SECONDS = 30 * 86400;
@@ -22,7 +22,7 @@ async function getSession(request, env, slug) {
   for (const name of slug === 'home' ? ['duet'] : [cookieName(slug), 'duet']) {
     const m = new RegExp(`(?:^|;\\s*)${name}=([^;]+)`).exec(jar);
     if (!m) continue;
-    const row = await env.DB.prepare("SELECT s.token, s.person, s.room_id, r.tz FROM sessions s JOIN rooms r ON r.id=s.room_id WHERE s.token=? AND s.expires>? AND r.slug=? AND r.status='live'")
+    const row = await env.DB.prepare("SELECT s.token, s.person, s.room_id, r.tz, r.vault FROM sessions s JOIN rooms r ON r.id=s.room_id WHERE s.token=? AND s.expires>? AND r.slug=? AND r.status='live'")
       .bind(await sha256(m[1]), Date.now() / 1000, slug).first();
     if (row) return row;
   }
@@ -69,12 +69,12 @@ async function handleGet(url, session, env) {
     const keep = { 'Content-Type': 'application/json', 'Cache-Control': 'private, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' };
     // One request returns every chunk of a note. The note is found through its indexed nonce (stored as "<roomId>:<nonce>" outside room 1); notes are never scanned.
     if (bits.length === 4 && /^[a-f0-9]{64}$/.test(bits[3])) {
-      const { results } = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format=4 JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND u.room_id=? ORDER BY d.part").bind(bits[3], rid).all();
+      const { results } = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format IN (4,6) JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND u.room_id=? ORDER BY d.part").bind(bits[3], rid).all();
       if (!results.length) return reply(404, { error: 'Drawing not found.' });
       return new Response('{"drawing":[' + results.map((r) => r.data.slice(1, -1)).filter(Boolean).join(',') + ']}', { status: 200, headers: keep });
     }
     if (bits.length !== 5 || !/^\d+$/.test(bits[4])) return reply(400, { error: 'Invalid segment.' });
-    const row = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format=4 JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND d.part=? AND u.room_id=?").bind(bits[3], Number(bits[4]), rid).first();
+    const row = await env.DB.prepare("SELECT d.data FROM uploads u JOIN notes n ON n.nonce=(CASE WHEN u.room_id=1 THEN u.nonce ELSE u.room_id||':'||u.nonce END) AND n.room_id=u.room_id AND n.format IN (4,6) JOIN drawing_chunks d ON d.upload=u.id WHERE u.id=? AND d.part=? AND u.room_id=?").bind(bits[3], Number(bits[4]), rid).first();
     return row ? new Response('{"drawing":' + row.data + '}', { status: 200, headers: keep }) : reply(404, { error: 'Drawing not found.' });
   }
   if (url.pathname === '/api/drafts' || url.pathname.startsWith('/api/drafts/')) return draftsGet(url, session, env);
@@ -105,15 +105,15 @@ async function handleUnlock(request, data, env, secure, slug) {
   // One person trying many walls is stopped sooner than one person mistyping, and one wall is capped across everyone.
   const [a, w, all] = [await dbHit(env, ip, 600), await dbHit(env, any, 600), await dbHit(env, wall, 3600)];
   if (a.count > 10 || w.count > 40 || all.count > 120) return slow(wait(a.count > 10 ? a : w.count > 40 ? w : all, now), 'Too many tries. Come back in ten minutes.');
-  const given = String(data.passphrase ?? '');
+  const given = String((room.vault ? data.proof : data.passphrase) ?? '');   // a locked wall is opened with a proof made in the browser
   let ok;
-  if (room.id === 1) {
+  if (room.id === 1 && !room.vault) {
     const expected = env.DUET_PASSPHRASE ? await sha256(String(env.DUET_PASSPHRASE)) : String(env.DUET_PASSPHRASE_SHA256 || '');
     ok = !!expected && safeEqual(await sha256(given), expected);
   } else ok = await checkPass(room.pass_hash, room.salt, given);
   if (!ok) { await sweep(env); return reply(401, { error: 'That’s not quite it. Try again.' }); }
   await dbRefund(env, any); await dbRefund(env, wall);
-  if (room.id !== 1 && !String(room.pass_hash).startsWith('k1:') && kdfIter(env)) {   // quietly move an older wall to the stronger hash
+  if (!room.vault && room.id !== 1 && !String(room.pass_hash).startsWith('k1:') && kdfIter(env)) {   // quietly move an older wall to the stronger hash
     await env.DB.prepare('UPDATE rooms SET pass_hash=? WHERE id=?').bind(await hashPass(room.salt, given, kdfIter(env)), room.id).run().catch(() => {});
   }
   const token = newToken();
@@ -125,7 +125,36 @@ async function handleUnlock(request, data, env, secure, slug) {
   return reply(200, { ok: true }, `${cookieName(slug)}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_SECONDS}${secure ? '; Secure' : ''}`);
 }
 
+// A locked wall stores notes the server cannot read: one sealed string made in the browser. Only its shape and size are checked.
+const SEALED = /^v1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]+$/, PAPER_NAMES = ['cream', 'rose', 'sage', 'blue'], SIZE_VALUES = [32, 40, 52];
+async function handleSealed(data, session, env) {
+  const person = session.person, rid = session.room_id, sealed = data.sealed, replace = data.replace === true;
+  if (!person) return reply(403, { error: 'Choose your name first.' });
+  if (typeof sealed !== 'string' || sealed.length > 190000 || !SEALED.test(sealed)) return reply(400, { error: 'Invalid note.' });
+  if (typeof data.nonce !== 'string' || data.nonce.length < 8 || data.nonce.length > 80) return reply(400, { error: 'Invalid note.' });
+  const key = dbNonce(rid, data.nonce);
+  const prev = await env.DB.prepare('SELECT * FROM notes WHERE nonce=? AND room_id=?').bind(key, rid).first();
+  if (replace) {   // lock an older plain note in place; its author, time and order do not change
+    if (!prev) return reply(404, { error: 'Note not found.' });
+    if (prev.format >= 5) return prev.format === 5 && prev.text === sealed ? reply(200, `{"ok":true,"note":${noteJson(prev)}}`) : reply(409, { error: 'Already locked.' });
+    const stmts = [env.DB.prepare("UPDATE notes SET text=?, drawing='[]', format=5 WHERE id=? AND room_id=?").bind(sealed, prev.id, rid)];
+    if (prev.format === 4) { const up = JSON.parse(prev.drawing).upload; stmts.push(env.DB.prepare('DELETE FROM drawing_chunks WHERE upload=?').bind(up), env.DB.prepare('DELETE FROM uploads WHERE id=? AND room_id=?').bind(up, rid)); }
+    await env.DB.batch(stmts);
+    return reply(200, `{"ok":true,"note":${noteJson(await env.DB.prepare('SELECT * FROM notes WHERE id=?').bind(prev.id).first())}}`);
+  }
+  if (data.author !== person) return reply(409, { error: 'Your identity changed. Close this draft and choose your name again.' });
+  if (!PAPER_NAMES.includes(data.paper) || !SIZE_VALUES.includes(data.text_size)) return reply(400, { error: 'Invalid note.' });
+  if (prev && prev.author !== person) return reply(409, { error: 'This draft belongs to the other person.' });
+  if (prev && !(prev.format === 5 && prev.text === sealed && prev.paper === data.paper && prev.text_size === data.text_size)) {
+    return reply(409, `{"code":"draft_changed","note":${noteJson(prev)},"error":${JSON.stringify('The earlier version was already saved. Your changes are kept here; stick again to save them as a new note.')}}`);
+  }
+  await env.DB.prepare("INSERT OR IGNORE INTO notes(nonce,author,recipient,text,drawing,paper,created,format,text_size,room_id) VALUES(?,?,?,?,'[]',?,?,5,?,?)")
+    .bind(key, person, person === 'aryan' ? 'chat' : 'aryan', sealed, data.paper, Date.now() / 1000, data.text_size, rid).run();
+  return reply(201, `{"ok":true,"note":${noteJson(await env.DB.prepare('SELECT * FROM notes WHERE nonce=?').bind(key).first())}}`);
+}
 async function handleNote(data, session, env) {
+  if (data.format === 5) return session.vault ? handleSealed(data, session, env) : reply(400, { error: 'This wall is not locked yet.' });
+  if (session.vault) return reply(400, { error: 'Please reload the page.' });   // a locked wall never accepts readable notes
   const checked = validateNote(data, session.person);
   if (!checked.note) return reply(checked.status, { error: checked.error });
   const n = checked.note, person = session.person, rid = session.room_id;
@@ -173,7 +202,8 @@ async function handlePost(request, url, env, ctx, slug) {
   if (url.pathname === '/api/unlock') return handleUnlock(request, data, env, secure, slug);
 
   const session = await getSession(request, env, slug);
-  if (!session) return reply(401, { error: 'Please enter the passphrase.' });
+  if (!session) return reply(401, { error: 'Please enter the passcode.' });
+  if (url.pathname === '/api/vault/upgrade') return upgradeVault(data, session, env);
   if (url.pathname === '/api/person') {
     if (data.person !== 'aryan' && data.person !== 'chat') return reply(400, { error: 'Choose a person.' });
     await env.DB.prepare('UPDATE sessions SET person=? WHERE token=?').bind(data.person, session.token).run();
@@ -186,7 +216,7 @@ async function handlePost(request, url, env, ctx, slug) {
     return reply(200, { ok: true }, names.map((n) => `${n}=; Path=/; Max-Age=0; HttpOnly; SameSite=Strict` + (secure ? '; Secure' : '')));
   }
   if (url.pathname.startsWith('/api/uploads')) {
-    const room = { id: session.room_id };
+    const room = { id: session.room_id, vault: !!session.vault };
     const out = await uploadPost(url.pathname, data, session.person, env, room);
     return reply(out.status, out.data);
   }
@@ -215,23 +245,37 @@ async function rootPage(request, env, url) {
   if (/(?:^|;\s*)duet=/.test(request.headers.get('Cookie') || '')) {
     return new Response(null, { status: 302, headers: { Location: `${url.origin}/${home}`, 'Cache-Control': 'no-store' } });
   }
-  return env.ASSETS.fetch(new Request(`${url.origin}/dash/`, request));
+  return dashPage(request, env, url, url.origin);   // the dashboard takes the main address's place; no redirect
 }
 
+// The dash page's tags (canonical, preview image, structured data) are written for the dash address. Served from
+// another address, they are rewritten to that address, so a search engine always sees one consistent page.
+const DASH_ORIGIN = 'https://dash.purrpause.space';
+async function dashPage(request, env, url, origin) {
+  const res = await env.ASSETS.fetch(new Request(`${url.origin}/dash/`, request));
+  if (!origin || origin === DASH_ORIGIN || !res.ok) return res;
+  const out = new Response((await res.text()).replaceAll(DASH_ORIGIN, origin), res);
+  out.headers.delete('Content-Length'); out.headers.delete('ETag');
+  return out;
+}
+// Once the original wall has its own address, the main address shows the dashboard and is the one to index.
+const isMoved = async (env) => (await homeSlug(env)) !== 'home';
+const rootOrigin = (env, url) => `${url.protocol}//${env.DUET_ROOT_HOST || url.host.replace(/^dash\./, '')}`;
+
 // Search engines: only the dash's front page is meant to be found. The walls and the review site are private.
-function robots(open, url) {
-  const body = open
-    ? `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dash/hold/\n\nSitemap: ${url.origin}/sitemap.xml\n`
+function robots(front, url, withSitemap) {
+  const body = front
+    ? `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /dash/hold/\n${withSitemap ? `\nSitemap: ${url.origin}/sitemap.xml\n` : ''}`
     : 'User-agent: *\nDisallow: /\n';
   return new Response(body, { headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
 }
-function sitemap(open, url) {
-  if (!open) return reply(404, { error: 'Not found.' });
-  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url.origin}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url></urlset>\n`;
+function sitemap(listed, url) {
+  if (!listed) return reply(404, { error: 'Not found.' });
+  const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${url.origin}/</loc><changefreq>monthly</changefreq><priority>1.0</priority></url><url><loc>${url.origin}/credits/</loc><changefreq>yearly</changefreq><priority>0.3</priority></url></urlset>\n`;
   return new Response(body, { headers: { 'Content-Type': 'application/xml; charset=utf-8', 'Cache-Control': 'public, max-age=3600' } });
 }
-function quiet(res, open) {   // everything but the dash's front page asks not to be indexed
-  if (open) return res;
+function quiet(res, site) {   // everything but the dash's front page asks not to be indexed
+  if (site === 'dash') return res;
   const out = new Response(res.body, res); out.headers.set('X-Robots-Tag', 'noindex, nofollow'); return out;
 }
 
@@ -241,14 +285,18 @@ export default {
     try {
       if (url.pathname === '/healthz') return reply(200, { ok: true });
       const site = siteOf(url, env);
-      // the dash's front page is public; so is the root once the original wall has moved to its own address and the dash stands in for it
-      const open = site === 'dash' || (site === 'root' && (url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml' || url.pathname === '/') && await homeSlug(env) !== 'home');
-      if (url.pathname === '/robots.txt') return robots(open, url);
-      if (url.pathname === '/sitemap.xml') return sitemap(open, url);
+      if (url.pathname === '/robots.txt' || url.pathname === '/sitemap.xml') {
+        // Everything but the review site may be crawled: a walls page that should stay private says so itself (noindex), and a crawler
+        // that is blocked by robots.txt can never read that. Blocking the main address is what made Search Console report "Blocked by robots.txt".
+        const moved = await isMoved(env), front = site !== 'dev';
+        const sitemapHere = (site === 'dash' && !moved) || (site === 'root' && moved);   // when the root carries the dash, only the root lists itself
+        return url.pathname === '/robots.txt' ? robots(front, url, sitemapHere) : sitemap(sitemapHere, url);
+      }
       if (url.pathname === '/') {
-        if (site === 'dash') return env.ASSETS.fetch(new Request(`${url.origin}/dash/`, request));
-        if (site === 'dev') return quiet(await env.ASSETS.fetch(new Request(`${url.origin}/devsite/`, request)), false);
-        return quiet(await rootPage(request, env, url), open);
+        if (site === 'dash') return dashPage(request, env, url, (await isMoved(env)) ? rootOrigin(env, url) : url.origin);
+        if (site === 'dev') return quiet(await env.ASSETS.fetch(new Request(`${url.origin}/devsite/`, request)), site);
+        const page = await rootPage(request, env, url);
+        return page.status === 200 && (await isMoved(env)) ? page : quiet(page, site);
       }
       if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
       // each subdomain only reaches the API it needs; the review API is reachable on the dev host only
@@ -262,19 +310,26 @@ export default {
         return reply(200, { now: Date.now(), timezone: (room && room.tz) || 'Asia/Kolkata' });
       }
       if (request.method === 'GET') {
+        if (url.pathname === '/api/vault') return vaultInfo(slug, env);
         if (url.pathname === '/api/room') return roomInfo(url.searchParams.get('slug') || 'home', env);
         if (url.pathname === '/api/request') return requestStatus(String(url.searchParams.get('slug') || '').toLowerCase(), env);
         if (url.pathname === '/api/slug') return slugCheck(String(url.searchParams.get('slug') || '').toLowerCase(), env);
         if (url.pathname.startsWith('/api/admin/')) return (await adminRoute(request, url, null, env, url.protocol === 'https:')) || reply(404, { error: 'Not found.' });
         if (slug === null) return reply(400, { error: 'Invalid room.' });
         const session = await getSession(request, env, slug);
-        if (!session) return reply(401, { error: 'Please enter the passphrase.' });
+        if (!session) return reply(401, { error: 'Please enter the passcode.' });
         return await handleGet(url, session, env);
       }
       if (request.method === 'POST') return await handlePost(request, url, env, ctx, slug);
       return reply(405, { error: 'Method not allowed.' });
     } catch (err) {
       console.error('duet error', err && err.message);
+      if (!url.pathname.startsWith('/api/')) {   // a page: show the friendly error page rather than raw text
+        try {
+          const page = await env.ASSETS.fetch(new Request(`${url.origin}/notice/error/`));
+          return new Response(page.body, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '30', 'Cache-Control': 'no-store' } });
+        } catch { return new Response('Something went wrong. Please try again in a moment.', { status: 503, headers: { 'Retry-After': '30', 'Content-Type': 'text/plain; charset=utf-8' } }); }
+      }
       return reply(503, { error: 'Storage is temporarily unavailable. Your draft is kept; try again.' });
     }
   },

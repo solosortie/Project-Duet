@@ -31,7 +31,7 @@
 
   function login(msg) {
     clearTimeout(timer); subEl.textContent = ''; document.title = 'Review · Project Duet';
-    view.innerHTML = '<div class="card cream login" data-k="login"><h1 class="lb">PASSPHRASE</h1><div class="row"><input class="f" id="pw" type="password" aria-label="Owner passphrase" autocomplete="current-password"><button class="go" id="go" aria-label="Sign in">' + I.go + '</button></div><p class="hint bad" role="status">' + esc(msg || '') + '</p></div>';
+    view.innerHTML = '<div class="card cream login" data-k="login"><h1 class="lb">PASSCODE</h1><div class="row"><input class="f" id="pw" type="password" aria-label="Owner passcode" autocomplete="current-password"><button class="go" id="go" aria-label="Sign in">' + I.go + '</button></div><p class="hint bad" role="status">' + esc(msg || '') + '</p></div>';
     tapeAll(); var pw = document.getElementById('pw'); pw.focus();
     function submit() {
       api('login', { passphrase: pw.value }).then(function (r) {

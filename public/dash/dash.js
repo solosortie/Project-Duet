@@ -1,4 +1,4 @@
-/* The dash: names and animals, an address, a passphrase, a look at the two walls, then the request waits for approval. */
+/* The dash: names and animals, an address, a passcode, a look at the two walls, then the request waits for approval. */
 (function () {
   var ANIMALS = ['deer', 'cat'];
   var WORDS = 'coffee cookie honey lemon maple apple peach berry butter toast cocoa mango plum pepper ginger cinnamon sugar candy muffin waffle pancake noodle pickle olive tulip daisy clover willow cedar birch pine acorn fern moss river brook pebble puddle meadow garden orchard cabin lantern candle blanket pillow slipper mitten scarf button ribbon teapot kettle spoon biscuit bagel donut pretzel pudding cherry melon pear fig lime orange mint basil thyme sage poppy lilac violet pansy robin sparrow finch wren otter badger rabbit squirrel hedgehog kitten puppy panda koala turtle ducky bunny pony lamb sunny rainy cloudy breezy snowy misty foggy dewy cozy sleepy happy gentle quiet little tiny fluffy woolly rustic cobble ember hazel amber pearl coral marble velvet cotton linen wool cabbage carrot pumpkin radish sunset moonlit apricot clementine'.split(' ');
@@ -11,7 +11,7 @@
     var saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved) { S.sent = !!saved.sent; S.i = Math.min(saved.i | 0, STEPS - 1); S.a = saved.a || S.a; S.b = saved.b || S.b; S.slug = saved.slug || ''; S.ticket = saved.ticket || ''; S.note = !!saved.note; }
   } catch (e) { /* nothing saved */ }
-  if (S.i > 2) S.i = 2;   // the passphrase is never stored, so a refresh goes back to choosing it
+  if (S.i > 2) S.i = 2;   // the passcode is never stored, so a refresh goes back to choosing it
   function keep() { try { localStorage.setItem(KEY, JSON.stringify({ i: S.i, a: S.a, b: S.b, slug: S.slug, sent: S.sent, ticket: S.ticket, note: S.note })); } catch (e) { /* private mode */ } }
   function forget() { try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } }
 
@@ -28,7 +28,7 @@
   var TIPS = {
     a: 'Type your name in the first card and the other person\'s name in the second. Tap a picture to swap the two animals.',
     address: 'This is the web address of your wall. Pick a short one that is easy to share. Use letters, numbers or hyphens.',
-    pass: 'You both use this passphrase to open the wall. Choose one you will remember, or tap the dice to get one. Share it only with the other person.',
+    pass: 'You both use this passcode to open the wall. A longer one locks your notes better. Pick one you will remember, or tap the dice to get one. Share it only with the other person.',
     look: 'Check that everything is right. Tap a pencil to change something. Then press Send request.',
     wait: 'Your request is waiting for me to approve it. You can close this page and come back later. The address starts working once it is approved.'
   };
@@ -128,7 +128,7 @@
   function stepOk(k) { return k === 0 ? namesState() === 'ok' : k === 1 ? slugShape(S.slug) && S.ok === true : k === 2 ? Array.from(S.pass).length >= 3 : true; }
   function reach(n) { if (n <= S.i) return true; for (var k = 0; k < n; k++) if (!stepOk(k)) return false; return true; }   // forward only when the steps before are done
   function chips() {
-    var NAMES = ['Names', 'Address', 'Passphrase', 'Review'];
+    var NAMES = ['Names', 'Address', 'Passcode', 'Review'];
     chipsEl.innerHTML = S.sent ? '' : Array.apply(null, Array(STEPS)).map(function (_, n) { return '<button type="button" class="' + (n < S.i ? 'd' : n === S.i ? 'c' : '') + (reach(n) ? '' : ' off') + '" data-n="' + n + '" aria-label="Step ' + (n + 1) + ': ' + NAMES[n] + '" title="' + NAMES[n] + '"' + (n === S.i ? ' aria-current="step"' : '') + '></button>'; }).join('');
     Array.prototype.forEach.call(chipsEl.querySelectorAll('button'), function (b) { b.onclick = function () { var n = Number(b.dataset.n); if (n !== S.i && reach(n)) go(n); }; });
   }
@@ -141,7 +141,7 @@
     return '<div class="card ' + paper + ' pre" data-k="who-' + p + '">' + (p === 'a' ? info('a') : '') + '<button class="pt" data-p="' + p + '" aria-label="' + d.an + '. Tap to swap the two animals."><img alt="" src="/assets/portrait-' + d.an + '.webp"><span class="sw">' + I.swap + '</span></button>'
       + '<input class="f nm" id="n' + p + '" aria-label="' + (p === 'a' ? 'Your name' : 'Their name') + '" placeholder="' + (p === 'a' ? 'you' : 'them') + '" maxlength="20" autocomplete="off" value="' + esc(d.n) + '"></div>';
   }
-  function paintPw() { var v = $('#pwv'); if (!v) return; var e = $('#pwe'); v.textContent = S.show ? S.pass : '•'.repeat(Math.min(Array.from(S.pass).length, 14)); v.classList.toggle('open', !!S.show); if (e) { e.setAttribute('aria-label', S.show ? 'Hide passphrase' : 'Show passphrase'); e.classList.toggle('on', !!S.show); } }
+  function paintPw() { var v = $('#pwv'); if (!v) return; var e = $('#pwe'); v.textContent = S.show ? S.pass : '•'.repeat(Math.min(Array.from(S.pass).length, 14)); v.classList.toggle('open', !!S.show); if (e) { e.setAttribute('aria-label', S.show ? 'Hide passcode' : 'Show passcode'); e.classList.toggle('on', !!S.show); } }
   function dots() { var d = $('#dots'); if (d) d.innerHTML = [0, 1, 2, 3, 4, 5, 6, 7].map(function (n) { return '<b class="' + (Array.from(S.pass).length > n ? 'on' : '') + '"></b>'; }).join(''); }
   function reveal() {
     requestAnimationFrame(function () { requestAnimationFrame(function () {
@@ -159,28 +159,16 @@
     } else if (i === 1) {
       host.innerHTML = '<div class="card cream solo pre" data-k="address">' + info('address') + '<h1 class="lb">ADDRESS</h1><div class="row"><span class="pre2">' + esc(ROOT_HOST) + '/</span><input class="f" id="sl" aria-label="Address" maxlength="24" autocomplete="off" spellcheck="false" autocapitalize="off" value="' + esc(S.slug) + '"><span class="ic" id="st"></span></div><div class="sug" id="sug"></div></div>' + nav(false);
     } else if (i === 2) {
-      host.innerHTML = '<div class="card blue solo pre" data-k="pass">' + info('pass') + '<h1 class="lb">PASSPHRASE</h1><div class="row"><input class="f" id="pw" type="' + (S.show ? 'text' : 'password') + '" aria-label="Passphrase" autocomplete="new-password" maxlength="64" value="' + esc(S.pass) + '"><button class="ic" id="ey" aria-label="Show passphrase">' + I.eye + '</button><button class="ic" id="dc" aria-label="Make me a passphrase" title="Make me a passphrase">' + I.dice + '</button></div><div class="dots" id="dots" aria-hidden="true"></div></div>' + nav(false);
+      host.innerHTML = '<div class="card blue solo pre" data-k="pass">' + info('pass') + '<h1 class="lb">PASSCODE</h1><div class="row"><input class="f" id="pw" type="' + (S.show ? 'text' : 'password') + '" aria-label="Passcode" autocomplete="new-password" maxlength="64" value="' + esc(S.pass) + '"><button class="ic" id="ey" aria-label="Show passcode">' + I.eye + '</button><button class="ic" id="dc" aria-label="Make me a passcode" title="Make me a passcode">' + I.dice + '</button></div><div class="dots" id="dots" aria-hidden="true"></div></div>' + nav(false);
     } else {
       var a = S.a, b = S.b;
       host.innerHTML = '<div class="card cream look pre" data-k="look">' + info('look') + '<div class="walls"><figure><img alt="" src="/assets/' + a.an + '-seat.webp"><figcaption>' + esc(a.n.trim()) + '<button class="ic" data-edit="0" aria-label="Change names">' + I.pen + '</button></figcaption></figure>'
         + '<figure><img alt="" src="/assets/' + b.an + '-seat.webp"><figcaption>' + esc(b.n.trim()) + '</figcaption></figure></div>'
         + '<div class="addr"><span>' + esc(ROOT_HOST + '/' + S.slug) + '</span><button class="ic" data-edit="1" aria-label="Change address">' + I.pen + '</button></div>'
-        + '<p class="pw-note"><span class="k">Passphrase</span><span class="v" id="pwv"></span><button class="ic" id="pwe" aria-label="Show passphrase">' + I.eye + '</button><button class="ic" data-edit="2" aria-label="Change passphrase">' + I.pen + '</button></p></div>' + nav(false, true);
+        + '<p class="pw-note"><span class="k">Passcode</span><span class="v" id="pwv"></span><button class="ic" id="pwe" aria-label="Show passcode">' + I.eye + '</button><button class="ic" data-edit="2" aria-label="Change passcode">' + I.pen + '</button></p></div>' + nav(false, true);
     }
     wire(); reveal(); refresh(); if (i === 3) paintPw();
     var first = host.querySelector('input'); if (first && !first.value) first.focus({ preventScroll: true });
-  }
-  /* the two cards slide across each other, each carrying its animal; the names fade in once they land */
-  function swapCards(before) {
-    var cs = host.querySelectorAll('.duo .card');
-    if (cs.length !== 2 || before.length !== 2 || !cs[0].animate || (window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches)) return;
-    Array.prototype.forEach.call(cs, function (c, n) {
-      var r = c.getBoundingClientRect(), o = before[1 - n], end = getComputedStyle(c).transform;
-      c.classList.remove('pre'); c.style.transition = 'none'; c.style.zIndex = n ? 1 : 3;
-      c.animate([{ transform: 'translate(' + (o.left - r.left) + 'px,' + (o.top - r.top - 18) + 'px) rotate(' + (n ? -5 : 5) + 'deg)' }, { transform: 'translate(' + ((o.left - r.left) * .45) + 'px,-34px) rotate(' + (n ? 3 : -3) + 'deg)', offset: .45 }, { transform: end }], { duration: 560, easing: 'cubic-bezier(.3,1.1,.4,1)' });
-      var nm = c.querySelector('.nm'); if (nm) nm.animate([{ opacity: 0 }, { opacity: 0, offset: .6 }, { opacity: 1 }], { duration: 560 });
-      setTimeout(function () { c.style.transition = ''; c.style.zIndex = ''; }, 620);
-    });
   }
   function go(n) { S.i = n; keep(); draw(); }
   function wire() {
@@ -193,11 +181,22 @@
       function ptLabel(an) { return an + '. Tap to swap the two animals.'; }
       Array.prototype.forEach.call(host.querySelectorAll('.pt'), function (e) { e.onclick = function () {
         if (swapping) return; swapping = true;
-        var before = Array.prototype.map.call(host.querySelectorAll('.duo .card'), function (c) { return c.getBoundingClientRect(); });
-        S.a.n = $('#na').value; S.b.n = $('#nb').value;
-        var t = S.a.an; S.a.an = S.b.an; S.b.an = t; keep();
-        draw(); swapCards(before);
-        setTimeout(function () { swapping = false; }, 600);
+        var pts = host.querySelectorAll('.pt'), ia = pts[0].querySelector('img'), ib = pts[1].querySelector('img'), ra = ia.getBoundingClientRect(), rb = ib.getBoundingClientRect();
+        var dx = rb.left - ra.left, dy = rb.top - ra.top, quick = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches, clones = [];
+        function done() {
+          var t = S.a.an; S.a.an = S.b.an; S.b.an = t; keep();
+          ia.src = '/assets/portrait-' + S.a.an + '.webp'; ib.src = '/assets/portrait-' + S.b.an + '.webp';
+          ia.style.visibility = ib.style.visibility = ''; clones.forEach(function (c) { c.remove(); });
+          pts[0].setAttribute('aria-label', ptLabel(S.a.an)); pts[1].setAttribute('aria-label', ptLabel(S.b.an)); swapping = false;
+        }
+        if (quick) return done();
+        /* two copies fly over the cards (above both), then the real pictures are swapped underneath */
+        [[ia, ra, dx, dy, 7], [ib, rb, -dx, -dy, -7]].forEach(function (x) {
+          var c = x[0].cloneNode(); c.className = 'flyer'; c.style.cssText = 'left:' + x[1].left + 'px;top:' + x[1].top + 'px;width:' + x[1].width + 'px;height:' + x[1].height + 'px';
+          document.body.appendChild(c); clones.push(c); x[0].style.visibility = 'hidden';
+          requestAnimationFrame(function () { requestAnimationFrame(function () { c.style.transform = 'translate(' + x[2] + 'px,' + x[3] + 'px) rotate(' + x[4] + 'deg)'; }); });
+        });
+        setTimeout(done, 460);
       }; });
       ['a', 'b'].forEach(function (p) { $('#n' + p).oninput = function () { S[p].n = this.value; if (S.slug === '' ) S.ok = null; keep(); refresh(); }; $('#n' + p).onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); if (p === 'a') $('#nb').focus(); else if (valid()) g.click(); } }; });
     }
@@ -224,7 +223,10 @@
   function send() {
     S.busy = true; refresh(); $('#go').textContent = '…';
     var tz; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { tz = 'UTC'; }
-    fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ names: [S.a.n.trim(), S.b.n.trim()], animals: [S.a.an, S.b.an], slug: S.slug, passphrase: S.pass, timezone: tz }) })
+    // The passcode never leaves this page: a proof made from it is sent, and the notes are later sealed with a key made from it.
+    if (!(window.crypto && crypto.subtle)) { S.busy = false; $('#go').textContent = 'Send request'; refresh(); hint('Open this page over https so your notes can be locked.', 'bad'); return; }
+    var vsalt = S.vsalt || (S.vsalt = Vault.newSalt());
+    Vault.derive(S.pass, vsalt).then(function (k) { return fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ names: [S.a.n.trim(), S.b.n.trim()], animals: [S.a.an, S.b.an], slug: S.slug, vault: { salt: vsalt, proof: k.proof }, timezone: tz }) }); })
       .then(function (r) { return r.json().then(function (j) { return { r: r, j: j }; }); })
       .then(function (res) {
         if (res.r.status === 201 || res.r.status === 200) { S.sent = true; S.ticket = res.j.ticket || ''; S.note = false; S.busy = false; keep(); return draw(); }
@@ -240,11 +242,11 @@
     var acts = $('#acts'), keep2 = $('#keep'), shown = false;
     function paintKeep(state) {
       if (state === 'declined') { keep2.innerHTML = ''; return; }
-      if (!S.pass) { keep2.innerHTML = '<p class="kt">Your passphrase can\'t be shown again.</p><p class="kt"><button class="bk" id="kad">' + I.cp + '<span>Copy address</span></button></p>'; $('#kad').onclick = function () { copy(url, $('#kad'), '<span>Copied</span>'); }; return; }
-      keep2.innerHTML = '<div class="kv"><span class="k">Passphrase</span><span class="v' + (shown ? ' open' : '') + '" id="kval">' + (shown ? esc(S.pass) : '•'.repeat(Math.min(Array.from(S.pass).length, 12))) + '</span><button class="ic' + (shown ? ' on' : '') + '" id="keye" aria-label="' + (shown ? 'Hide' : 'Show') + ' passphrase">' + I.eye + '</button><button class="ic" id="kcp" aria-label="Copy address and passphrase" title="Copy address and passphrase">' + I.cp + '</button></div>'
+      if (!S.pass) { keep2.innerHTML = '<p class="kt">Your passcode can\'t be shown again.</p>'; return; }
+      keep2.innerHTML = '<div class="kv"><span class="k">Passcode</span><span class="v' + (shown ? ' open' : '') + '" id="kval">' + (shown ? esc(S.pass) : '•'.repeat(Math.min(Array.from(S.pass).length, 12))) + '</span><button class="ic' + (shown ? ' on' : '') + '" id="keye" aria-label="' + (shown ? 'Hide' : 'Show') + ' passcode">' + I.eye + '</button><button class="ic" id="kcp" aria-label="Copy passcode" title="Copy">' + I.cp + '</button></div>'
         + '<p class="kt">Save it now. It can\'t be shown again.</p>';
       $('#keye').onclick = function () { shown = !shown; paintKeep(state); };
-      $('#kcp').onclick = function () { copy('Come to our wall: ' + url + '\nPassphrase: ' + S.pass, $('#kcp')); };
+      $('#kcp').onclick = function () { copy('Wall address: ' + url + '\nPasscode: ' + S.pass, $('#kcp')); };
     }
     function actions(state) {
       closeInfo();
@@ -253,7 +255,7 @@
       if (state === 'wait') h += '<button class="bk" id="addnote">' + I.pen + '<span>' + (S.note ? 'Edit note' : 'Add a note') + '</span></button>';
       h += '<button class="lnk" id="again">New request</button>';
       acts.innerHTML = h; paintKeep(state);
-      if ($('#inv')) $('#inv').onclick = function () { copy('Come to our wall: ' + url + '\nPassphrase: ' + S.pass, $('#inv'), '<span>Copied</span>'); };
+      if ($('#inv')) $('#inv').onclick = function () { copy('Come to our wall: ' + url + '\nPasscode: ' + S.pass, $('#inv'), '<span>Copied</span>'); };
       if ($('#addnote')) $('#addnote').onclick = openNote;
       $('#again').onclick = function () { if (poll) poll.stop(); poll = null; forget(); S = fresh(); draw(); };
     }
@@ -312,16 +314,25 @@
 
   /* ---- the what-it-is page comes first; the steps open after "I have read this" ---- */
   var READ = 'duet-read';
-  function proceed() { document.documentElement.dataset.read = 'yes'; window.scrollTo(0, 0); draw(); }
+  function proceed() { document.documentElement.dataset.read = 'yes'; window.scrollTo(0, 0); draw(); firstTip(); }
+  /* someone new gets the first card's explanation opened for them, once */
+  function firstTip() {
+    var seen = false; try { seen = localStorage.getItem('duet-tip') === '1'; } catch (e) { /* treat as new */ }
+    if (seen || S.i !== 0 || S.sent) return;
+    try { localStorage.setItem('duet-tip', '1'); } catch (e) { /* private mode */ }
+    setTimeout(function () { var b = document.querySelector('.inf'); if (!b || !box.hidden || document.documentElement.dataset.read !== 'yes') return; b.click();
+      var nav = document.querySelector('.stepnav'), r = box.getBoundingClientRect(), n = nav && nav.getBoundingClientRect();
+      if (n && r.bottom > n.top && r.top < n.bottom) closeInfo();   // never leave an unprompted note sitting over the buttons
+    }, 800);
+  }
   /* the first page is three short pages inside one card, so nothing has to scroll */
   (function () {
-    var pgs = Array.prototype.slice.call(document.querySelectorAll('#about .pg')), cur = 0, dots = $('#apdots'), TT = ['WHAT THIS IS', 'HOW TO START', 'PLEASE KNOW'];
+    var pgs = Array.prototype.slice.call(document.querySelectorAll('#about .pg')), cur = 0, dots = $('#apdots');
     function paint() {
       pgs.forEach(function (e, n) { e.classList.toggle('on', n === cur); });
       dots.innerHTML = pgs.map(function (_, n) { return '<button type="button" class="' + (n < cur ? 'd' : n === cur ? 'c' : '') + '" data-n="' + n + '" aria-label="Page ' + (n + 1) + '"' + (n === cur ? ' aria-current="step"' : '') + '></button>'; }).join('');
       Array.prototype.forEach.call(dots.querySelectorAll('button'), function (b) { b.onclick = function () { cur = Number(b.dataset.n); paint(); }; });
-      $('#ab-t').textContent = TT[cur] || TT[0];
-      var last = cur === pgs.length - 1; $('#about .apnav').classList.toggle('last', last);
+      var last = cur === pgs.length - 1;
       $('#apback').style.visibility = cur ? 'visible' : 'hidden'; $('#apnext').style.display = last ? 'none' : ''; $('#read').style.display = last ? '' : 'none';
     }
     $('#apback').onclick = function () { cur = Math.max(0, cur - 1); paint(); };

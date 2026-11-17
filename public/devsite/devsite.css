@@ -40,6 +40,3 @@ main{scrollbar-width:thin}
 .so{width:auto;height:42px;padding:0 20px;font-size:17px}
 .login{width:min(92vw,460px)}.login .row{margin:0 0 6px}.login .hint{margin:10px 0 0}
 @media(max-width:720px){.req .top{grid-template-columns:auto 1fr}.req .acts{grid-column:1/-1;justify-content:flex-end}}
-*{scrollbar-width:thin;scrollbar-color:#8d745b88 transparent}
-::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#8d745b88;border-radius:9px;border:2px solid transparent;background-clip:content-box}

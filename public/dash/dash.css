@@ -227,7 +227,7 @@ body[data-time=evening]{--pb:1.15}body[data-time=night]{--pb:1.9}
 @media(prefers-reduced-motion:reduce){.scrollhint svg,.sway{animation:none}}
 
 /* ---- the animal on the title rests on the letters: its belly line sits just inside the cap tops ---- */
-.wm img{top:-1.11em;bottom:auto;left:1.75em;right:auto;width:3.5em}
+.wm img{top:-1.11em;bottom:auto;left:1.3em;right:auto;width:3.5em}
 
 /* ---- proper cards: even corners, a clear edge, a thin inner line ---- */
 .card:before,.paper:before{clip-path:none;border-radius:12px;border:2px solid #594739;box-shadow:inset 0 0 0 5px #fff0,inset 0 0 0 6px #5947391f}
@@ -472,9 +472,6 @@ h1.wm{margin-bottom:0;font-weight:400}
   .about h2{font-size:16px;margin:2px 0 4px}
   .apdots{margin:8px 0 2px}.about .apnav{margin-top:8px;gap:8px}
   .about #read{flex:1 0 100%;order:1;width:100%;height:46px;font-size:16px;margin:0}
-  .about #apback{order:2;flex:1 0 100%;height:38px;box-shadow:none;background:none;border-color:transparent;text-decoration:underline;text-underline-offset:3px}
-  .about #apnext{flex:1}
-  .about #apback[style*="hidden"]{display:none}
 }
 @media(max-width:360px){.about p,.about li{font-size:13px}.wm{font-size:34px}.stepnav .nav .go,.stepnav .nav .bk{padding:0 16px}}
 @media(max-height:520px){
@@ -512,7 +509,7 @@ main{scroll-padding:12px}
 /* the intro card never pushes the page: it shrinks to the screen and its page scrolls inside as a last resort */
 html[data-read=no] main{overflow:hidden}
 .about{display:flex;flex-direction:column;flex:0 1 auto;min-height:0;max-height:100%}
-.about .pg.on{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#59473955 transparent;padding-right:2px}
+.about .pg.on{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
 .about .apdots,.about .apnav,.about .lb{flex:none}
 @media(max-height:640px){.sub{display:none}.wm{margin-top:4px}.card{padding-top:36px;padding-bottom:16px}.look .walls img{max-width:120px}.look{padding-top:34px}.pt{height:76px}.stage{gap:6px;padding:4px 0}.chips{padding:0}.keep:not(:empty){padding:7px 12px 8px}.kt{font-size:13.5px;margin-bottom:4px}.scene .state{font-size:17px}.hang{min-height:170px}.mine{padding:22px 12px 10px}.mine .pair img{height:46px}.inf{top:6px;right:8px}}
 .kv .v{display:block;line-height:26px;white-space:nowrap;overflow-wrap:normal;overflow:hidden;text-overflow:ellipsis}.kv .v.open{white-space:normal;overflow-wrap:anywhere;line-height:1.25}
@@ -545,37 +542,60 @@ html[data-read=no] main{overflow:hidden}
 @media(max-height:380px){.wm{font-size:20px}.pt{height:48px}.look .walls img{max-width:74px}.hang{min-height:84px}.mine .pair img{height:28px}.chips{display:none}.card{padding-top:24px}.look{padding-top:22px}.stepnav .hint{display:none}.pw-note{margin-top:2px}.scene .state{font-size:14px}.kv .v{min-height:30px}.hung.sm{display:none}}
 @media(max-height:340px){.hang{min-height:64px}.mine{padding:14px 8px 6px}.mine .pair img{height:24px}.mine .addr{display:none}.scene{padding-top:0}.acts2 .bk,.acts2 .go{height:30px;font-size:14px}.wm{margin-top:0}}
 
-/* ===== final pass: intro card as one fitted block, no page scroll, custom scrollbars ===== */
-html[data-read=no],html[data-read=no] body{overflow:hidden;height:100dvh}
-#about.about{display:flex;flex-direction:column;width:min(94vw,560px);max-height:calc(100dvh - 20px);min-height:0;padding:48px clamp(18px,5vw,40px) 16px}
-#about .lb{margin:0 0 8px;text-align:center;flex:none}
-#about .pg.on{display:block;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding-right:6px}
-#about .pg p,#about .pg li{font-size:clamp(13.5px,min(2.3vh,4.2vw),17px);line-height:1.45;margin:0 0 6px}
-#about .apnav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:nowrap;margin:12px 0 0;min-height:0;flex:none;width:100%}
-#about .apnav .apdots{margin:0;flex:1 1 auto;justify-content:center;min-width:0}
-#about .apnav #apback,#about .apnav #apnext,#about .apnav #read{height:46px;min-height:46px;margin:0;padding:0 16px;font-size:16px;white-space:nowrap;flex:none;order:0;width:auto;text-decoration:none;letter-spacing:0;line-height:1}
-#about .apnav #apback{background:#fff6e5;border:2px solid #594739;box-shadow:none}
-#about .apnav #apback[style*="hidden"]{display:inline-flex;visibility:hidden!important}
-#about .apnav #read{flex:1 1 auto;padding:0 12px;font-size:15px}
-#about .apdots button{margin-left:22px}#about .apdots button:not(:first-child):before{width:16px}
-@media(max-width:480px){
-  #about .apnav #apback span{display:none}#about .apnav #apback{padding:0;width:46px}
-  #about .apnav #read{font-size:14px;padding:0 8px}
-  #about .apdots button{margin-left:16px;width:16px;height:16px}#about .apdots button.c{width:20px;height:20px}#about .apdots button:not(:first-child):before{width:12px}
-  #about .apnav.last .apdots{display:none}
-}
-@media(max-height:560px){#about.about{padding-top:40px}}
-/* hand-made scrollbars, everywhere */
-*{scrollbar-width:thin;scrollbar-color:#8d745b88 transparent}
-::-webkit-scrollbar{width:9px;height:9px}
+/* scrollbars: soft, thin and in the page's colours, everywhere */
+*{scrollbar-width:thin;scrollbar-color:#bfa882 transparent}
+::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#8d745b88;border-radius:9px;border:2px solid transparent;background-clip:content-box}
-::-webkit-scrollbar-thumb:hover{background:#594739aa;background-clip:content-box;border:2px solid transparent}
-textarea{scrollbar-width:thin}
-/* while the intro is open, the title steps back so the card gets the room */
-html[data-read=no] .wm{font-size:clamp(28px,min(7vw,8.2dvh),84px);margin-top:clamp(4px,2dvh,24px)}
-html[data-read=no] .sub{margin:2px 0 0}
-@media(max-height:760px){html[data-read=no] .sub{display:none}}
-html[data-read=no] #about.about{flex:1 1 auto;max-height:min(680px,calc(100dvh - 12px));margin-top:clamp(6px,2dvh,26px)}
-#about .pg p,#about .pg li{font-size:clamp(13px,min(2.05vh,3.9vw),16.5px);line-height:1.38;margin:0 0 4px}
-#about.about{padding-top:44px}#about .lb{font-size:clamp(18px,3.4vh,24px)}
+::-webkit-scrollbar-thumb{background:#c4ad86;border:2.5px solid transparent;background-clip:padding-box;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#a88f66;background-clip:padding-box}
+::-webkit-scrollbar-corner{background:transparent}
+
+/* intro card: only the long third page may scroll; the buttons are one row, one size, set a little lower */
+.about .pg.on{overflow-y:hidden}
+.about .pg:nth-of-type(3).on{overflow-y:auto}
+.about{padding-bottom:14px}
+.about .apdots{margin:8px 0 8px}
+.about .apnav{display:flex;gap:10px;align-items:stretch;width:100%;margin:0}
+.about .apnav [hidden]{display:none!important}
+.about .apnav .bk,.about .apnav .go{height:48px;min-height:48px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:17px;line-height:1.1;margin:0;box-sizing:border-box}
+.about .apnav .bk{flex:0 0 auto;min-width:96px}
+.about .apnav .go{flex:1 1 0;min-width:0;white-space:nowrap}
+@media(max-width:400px){.about .apnav #read{height:48px;min-height:48px;padding:4px 10px;font-size:14.5px;line-height:1.1;white-space:normal;text-align:center}.about .apnav .bk{min-width:84px;padding:0 12px}}
+@media(max-height:480px){.about .apnav .bk,.about .apnav .go{height:40px;min-height:40px;font-size:15px}.about .apnav #read{height:40px;min-height:40px}}
+/* the cat sits on the ECT of PROJECT */
+.wm img{left:1.72em}
+/* more reading room on the intro card */
+html[data-read=no] .sub{display:none}
+html[data-read=no] .wm{margin-top:0;font-size:clamp(30px,min(6vw,7.4vh),72px)}
+.about .pg:nth-of-type(n+2).on{overflow-y:auto}
+.about .pg:nth-of-type(3) li{font-size:.94em;line-height:1.32;margin-bottom:5px}
+.about .lb{margin-top:0}
+@media(max-height:380px){.about p,.about li{font-size:12.5px;line-height:1.28}.about .lb{font-size:15px;margin:0 0 4px}}
+.about .apnav{flex-wrap:nowrap}
+@media(max-height:340px){.about{padding:24px 20px 8px}.about p,.about li{font-size:11.5px;line-height:1.2;margin:0 0 3px}.about .apdots{margin:4px 0}}
+
+/* one clean row: Back (when there is somewhere to go back to) and one primary button, same height */
+.about #apback[style*="hidden"]{display:none}
+.about #apback{order:0;flex:0 0 auto;text-decoration:none}
+.about #apnext,.about #read{flex:1 1 0}
+@media(max-width:400px){.about .apnav #read{letter-spacing:0;font-size:14px;padding:4px 8px}.about .apnav .bk{min-width:80px;padding:0 10px}.about .apnav .bk span{letter-spacing:.02em}}
+
+/* dialog titles leave room for the close button */
+.dlg h2{padding-right:56px}
+/* the cat aligned to E / ECT of PROJECT */
+.wm img{left:1.72em}
+
+.creditline{margin:14px 0 0;text-align:center;font-size:14px}.creditline a{color:inherit;opacity:.8;text-underline-offset:3px}
+.about .more{margin:8px 0 0;font-size:.9em}.about .more a{color:inherit;text-underline-offset:3px}
+/* the third intro page reads a little tighter on shorter screens so it fits without scrolling */
+@media(max-height:820px){.about .pg:nth-of-type(3) li{font-size:.88em;line-height:1.28;margin-bottom:3px}.about .more{font-size:.84em;margin-top:5px}}
+
+/* the page shown for a missing address or an error */
+.lost{width:min(92vw,420px);margin:0 auto;padding:24px 22px 8px;text-align:center;background:#fff6e5;border:2px solid #594739;border-radius:14px;box-shadow:0 3px 0 #59473966,0 14px 30px #5947392e}
+.lost-pic{width:92px;height:auto;display:block;margin:0 auto 4px}
+.lost .lb{font-size:24px;margin:6px 0 10px}
+.lost p{margin:0 0 14px;font:16px/1.5 'Duet Hand Bold',ui-rounded,'Trebuchet MS',sans-serif;color:#594739}
+.about li a{color:inherit;text-underline-offset:3px}
+@media(max-height:480px){.lost{padding:12px 16px 2px}.lost-pic{width:56px}.lost .lb{font-size:19px;margin:2px 0 6px}.lost p{margin-bottom:8px;font-size:14px}}
+.lost .lb{text-transform:uppercase;letter-spacing:.04em;font-size:22px}
+@media(min-width:900px) and (max-height:800px){.card{padding-top:40px;padding-bottom:20px}.look{padding-top:34px}h1.wm{margin-bottom:0}}

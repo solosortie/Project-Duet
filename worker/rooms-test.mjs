@@ -6,11 +6,16 @@ import { execFileSync } from 'node:child_process';
 const BASE = process.env.BASE || 'http://127.0.0.1:8787';
 const ADMIN = process.env.DUET_TEST_ADMIN || 'test-admin-pass';
 const RUN = Date.now().toString(36).slice(-5);
+import { createHash } from 'node:crypto';
+import { sealRoomBody, unlockBody } from './vault-helper.mjs';
+const passFor = {};   // slug -> passcode, so a room can be turned into an older-style (readable) wall for the tests below
 const d1 = (sql) => execFileSync('npx', ['wrangler', 'd1', 'execute', 'duet', '--local', '--command', sql], { stdio: 'pipe' });
 
 class Client {
   constructor(room, ip) { this.jar = {}; this.room = room; this.ip = ip; }
   async req(path, body, headers = {}) {
+    if (path === '/api/rooms' && body && body.passphrase !== undefined) { passFor[body.slug] ??= body.passphrase; body = await sealRoomBody(body); }
+    if (path === '/api/unlock' && body && body.passphrase !== undefined) body = await unlockBody(BASE, this.room, body);
     const h = { 'Content-Type': 'application/json', ...headers };
     if (this.room) h['X-Duet-Room'] = this.room;
     if (this.ip) h['CF-Connecting-IP'] = this.ip;
@@ -29,9 +34,15 @@ class Client {
 const make = (slug, o = {}) => ({ dynamic: 'friends', names: ['Mira', 'Jo'], animals: ['cat', 'deer'], slug, passphrase: 'correct horse', timezone: 'America/New_York', ...o });
 const note = (o = {}) => ({ nonce: `rt-${RUN}-${Math.random().toString(36).slice(2, 10)}`, text: 'hello', paper: 'cream', drawing: [], format: 3, text_size: 40, ...o });
 let admin;
-async function approve(slug) { assert.equal((await admin.req('/api/admin/decide', { slug, status: 'live' })).status, 200); await new Promise((r) => setTimeout(r, 50)); }
+// These tests are about rooms, isolation, time zones and streaks, so they read notes as plain text: each approved room is
+// turned into an older-style wall first. Locked walls (sealed notes, drawings, drafts, upgrade) are covered by vault-test.mjs.
+async function approve(slug) {
+  if (passFor[slug]) d1(`UPDATE rooms SET vault=0, salt='legacy', pass_hash='${createHash('sha256').update('legacy:' + passFor[slug]).digest('hex')}' WHERE slug='${slug}'`);
+  assert.equal((await admin.req('/api/admin/decide', { slug, status: 'live' })).status, 200);   // approving also clears the server's cached copy
+  await new Promise((r) => setTimeout(r, 50));
+}
 async function enter(slug, person, pass = 'correct horse') {
-  const c = new Client(slug); assert.equal((await c.req('/api/unlock', { passphrase: pass })).status, 200);
+  const c = new Client(slug); const un = await c.req('/api/unlock', { passphrase: pass }); assert.equal(un.status, 200, slug + ' ' + JSON.stringify(un.json));
   assert.equal((await c.req('/api/person', { person })).status, 200); return c;
 }
 const A = `amber-${RUN}`, B = `birch-${RUN}`;
@@ -54,7 +65,7 @@ test('addresses: shape, reserved words and availability', async () => {
 
 test('creation is validated and starts pending', async () => {
   const c = new Client(null, '203.0.113.10');
-  const bad = [{ names: ['Mira', 'mira'] }, { names: ['<b>x</b>', 'Jo'] }, { animals: ['cat', 'dragon'] }, { dynamic: 'rivals' }, { passphrase: 'ab' }, { passphrase: '' }, { slug: 'dev' }, { names: ['', 'Jo'] }];
+  const bad = [{ names: ['Mira', 'mira'] }, { names: ['<b>x</b>', 'Jo'] }, { animals: ['cat', 'dragon'] }, { dynamic: 'rivals' }, { slug: 'dev' }, { names: ['', 'Jo'] }];
   for (const o of bad) assert.equal((await c.req('/api/rooms', make(`zz-${RUN}`, o))).status, 400, JSON.stringify(o));
   const r = await c.req('/api/rooms', make(A));
   assert.equal(r.status, 201); assert.equal(r.json.status, 'pending');
@@ -211,6 +222,11 @@ test('moving the original wall to its own address keeps notes and logins, and "/
     assert.equal((await fresh.req('/api/unlock', { passphrase: '229' })).status, 200); assert.ok(fresh.jar[`duet_${addr}`], 'a new login gets a cookie for the new address');
     const html = await (await fetch(BASE + '/')).text();
     assert.match(html, /I have read this, continue/); assert.doesNotMatch(html, /room\.js/);
+    assert.ok(html.includes(`rel="canonical" href="${BASE}/"`), 'the dash on the main address names the main address as canonical');
+    assert.doesNotMatch(html, /dash\.purrpause\.space/);
+    const bots = await (await fetch(BASE + '/robots.txt')).text();
+    assert.match(bots, /^Allow: \/$/m); assert.match(bots, new RegExp(`Sitemap: ${BASE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/sitemap.xml`));
+    assert.equal((await fetch(BASE + '/', { headers: {} })).headers.get('x-robots-tag'), null, 'the front page is indexable once the dash lives there');
     const go = await fetch(BASE + '/', { redirect: 'manual', headers: { Cookie: `duet=${home.jar.duet}` } });
     assert.equal(go.status, 302); assert.equal(go.headers.get('location'), `${BASE}/${addr}`);
     fresh.jar.duet = home.jar.duet;

@@ -5,12 +5,20 @@
   if (path.length > 1 && /^\/[a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?\/$/.test(path)) { location.replace(path.slice(0, -1) + location.search); return; }
   var m = path.match(/^\/([a-z0-9](?:[a-z0-9-]{0,22}[a-z0-9])?)$/);
   var slug = m && m[1];
-  var SCRIPTS = ['/drawing-store.js', '/fill.js', '/paper.js', '/app.js', '/drafts.js', '/ambience.js', '/clouds.js', '/export.js'];
+  var SCRIPTS = ['/vault.js', '/drawing-store.js', '/fill.js', '/paper.js', '/app.js', '/drafts.js', '/ambience.js', '/clouds.js', '/export.js'];
   function start() {
     SCRIPTS.forEach(function (src) { var s = document.createElement('script'); s.src = src; s.async = false; document.body.appendChild(s); });
     document.documentElement.classList.remove('room-wait');
   }
   function ready(fn) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+  // Instead of a bare error, show a proper page: nothing here, no connection, or trouble on the server.
+  function notice(kind) {
+    window.DUET_NOTICE = kind;
+    fetch(kind === 'server' ? '/notice/error/' : '/notice/').then(function (r) { return r.text(); }).then(function (html) {
+      document.open(); document.write(html); document.close();
+    }).catch(function () { document.documentElement.classList.remove('room-wait'); });
+  }
+  if (!slug && path !== '/') { document.documentElement.classList.add('room-wait'); notice('missing'); return; }
   if (!slug) { ready(start); return; }
 
   document.documentElement.classList.add('room-wait');
@@ -36,9 +44,11 @@
     });
     document.title = names.aryan + ' & ' + names.chat + ' · Project Duet';
   }
-  fetch('/api/room?slug=' + slug).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); }).then(function (res) {
-    if (!res.ok || res.j.status !== 'live') { ready(hold); return; }
+  fetch('/api/room?slug=' + slug).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }, function () { return { ok: false, status: r.status, j: {} }; }); }).then(function (res) {
+    if (res.status === 404) { notice('missing'); return; }
+    if (!res.ok) { notice('server'); return; }
+    if (res.j.status !== 'live') { ready(hold); return; }
     window.DUET_ROOM = { slug: slug, names: res.j.names, animals: res.j.animals, timezone: res.j.timezone, dynamic: res.j.dynamic, legacy: !!res.j.legacy };
     ready(function () { personalise(window.DUET_ROOM); start(); });
-  }).catch(function () { ready(hold); });
+  }).catch(function () { notice('offline'); });
 })();

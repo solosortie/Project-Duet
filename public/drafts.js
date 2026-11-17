@@ -18,7 +18,7 @@ const Shelf=(()=>{
  function stamp(s){if(!s)return;badge(s.n);if(dlg.open&&stampT!==null&&s.t!==stampT)refresh()}
 
  async function refresh(){
-  try{const r=await rawApi('drafts');list=r.drafts;stampT=r.stamp.t;loaded=true;badge(r.stamp.n);err.textContent='';if(dlg.open)draw()}
+  try{const r=await rawApi('drafts');list=await unsealMeta(r.drafts);stampT=r.stamp.t;loaded=true;badge(r.stamp.n);err.textContent='';if(dlg.open)draw()}
   catch(e){if(dlg.open)err.textContent=e.message}
  }
 
@@ -31,8 +31,19 @@ const Shelf=(()=>{
   return url.startsWith('data:image/jpeg')&&url.length<=23000?url:undefined;
  }
  // Uploads one snapshot as the next revision of draft `id`. Returns the draft's new metadata.
+ // On a locked wall a draft is sealed in the browser: its strokes, its title and its preview picture.
+ async function unsealText(v,ctx){if(!window.Vault||!Vault.isSealed(v))return v;try{return (await Vault.open(Vault.keys(),v,ctx)).t}catch{return ''}}
+ const unsealMeta=rows=>Promise.all((rows||[]).map(async d=>({...d,title:await unsealText(d.title,'draft-title'),thumb:await unsealText(d.thumb,'draft-thumb')})));
+ async function pushSealed({id,base,title,paper,nonce,drawing}){
+  const K=Vault.keys(),parts=Vault.pieces(await Vault.seal(K,{drawing:drawing.map(DrawingStore.pack)},'draft'));
+  const thumb=thumbnail(drawing,paper),sTitle=title?await Vault.seal(K,{t:title},'draft-title'):'',sThumb=thumb?await Vault.seal(K,{t:thumb},'draft-thumb'):'';
+  const save=hex();let last;
+  for(let i=0;i<parts.length;i++){last=await rawApi('drafts',{id,save,part:i,total:parts.length,base,nonce,paper,title:sTitle,drawing:[],sealed:parts[i],strokes:drawing.length,...(i===parts.length-1&&sThumb?{thumb:sThumb}:{})})}
+  return {...last.draft,title:await unsealText(last.draft.title,'draft-title'),thumb:await unsealText(last.draft.thumb,'draft-thumb')};
+ }
  async function push({id,base,title,paper,nonce,drawing}){
   if(!drawing.length)throw Object.assign(Error('Draw or write something first.'),{code:'empty'});
+  if(window.Vault&&Vault.keys())return pushSealed({id,base,title,paper,nonce,drawing});
   const chunks=[];let group=[],size=2;for(const s of drawing){const packed=DrawingStore.pack(s),bytes=JSON.stringify(packed).length;if(group.length&&(size+bytes>80000||group.length>=40)){chunks.push(group);group=[];size=2}group.push(packed);size+=bytes+1}if(group.length)chunks.push(group);
   const save=hex(),thumb=thumbnail(drawing,paper);let last;
   for(let i=0;i<chunks.length;i++){
@@ -97,8 +108,9 @@ const Shelf=(()=>{
   err.textContent='';
   try{
    const r=await rawApi('drafts/'+id),d=r.draft;
+   const sealed=d.drawing.length&&typeof d.drawing[0]==='string',strokes=sealed?(await Vault.open(Vault.keys(),d.drawing.join(''),'draft')).drawing:d.drawing;
    if(dlg.open)dlg.close();
-   await openEditor({id:d.id,rev:d.rev,title:d.title,paper:d.paper,nonce:d.nonce,drawing:d.drawing.map(DrawingStore.unpack)});
+   await openEditor({id:d.id,rev:d.rev,title:await unsealText(d.title,'draft-title'),paper:d.paper,nonce:d.nonce,drawing:strokes.map(DrawingStore.unpack)});
   }catch(e){err.textContent=e.message;if(/gone/.test(e.message))refresh()}
  }
 
@@ -122,7 +134,7 @@ const Shelf=(()=>{
  async function copyDraft(id){try{await rawApi('drafts/copy',{id});toast('Copy made');refresh()}catch(e){err.textContent=e.message}}
  async function remove(id){try{await rawApi('drafts/delete',{id});list=list.filter(d=>d.id!==id);badge(list.length);draw();toast('Set aside, kept for 7 days');if(binOpen)loadBin()}catch(e){err.textContent=e.message}}
  async function loadBin(){
-  try{const r=await rawApi('drafts?deleted=1');bin=r.drafts}catch{bin=[]}
+  try{const r=await rawApi('drafts?deleted=1');bin=await unsealMeta(r.drafts)}catch{bin=[]}
   const box=$('#bin-list');box.replaceChildren(...bin.map(d=>{const row=document.createElement('div');row.className='bin-row';const n=document.createElement('span');n.textContent=(d.title||'Draft')+' · '+ago(d.deleted);
    const b=tool('i-undo','Restore',async()=>{try{await rawApi('drafts/restore',{id:d.id});toast('Back on the shelf');refresh();loadBin()}catch(e){err.textContent=e.message}});
    // Delete forever takes two taps: the first asks, the second does it. Nothing of the draft stays on the server afterwards.

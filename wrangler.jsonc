@@ -33,8 +33,8 @@
 		"DUET_MAX_BODY": "250000",
 		"DUET_DASH_HOST": "dash.purrpause.space",
 		"DUET_DEV_HOST": "dev.purrpause.space",
-		// SHA-256 of the default passphrase. Override by setting a secret: npx wrangler secret put DUET_PASSPHRASE
-		"DUET_PASSPHRASE_SHA256": "08490295488a1189099751ebeddb5992313dd2a831e07a92e66d196ddc261777"
+		"DUET_ROOT_HOST": "purrpause.space"
+		// Secrets (ADMIN_PASSPHRASE, IP_SALT, DUET_PASSPHRASE) are set with `wrangler secret put`, never here. See DEPLOY.md.
 	},
 	"observability": {
 		"enabled": true
